@@ -1,0 +1,27 @@
+.bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 14px;
+  height: 28px;
+  background: var(--chrome);
+  border-top: 1px solid var(--line-strong);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-muted);
+}
+
+.aggregate {
+  white-space: nowrap;
+}
+
+.aggregateName {
+  color: var(--fg-faint);
+}
+
+.hint {
+  margin-left: auto;
+  color: var(--fg-faint);
+  white-space: nowrap;
+}

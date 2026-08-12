@@ -1,0 +1,92 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.pathInput {
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+
+.suggestions {
+  max-height: 150px;
+  overflow: auto;
+  border: 1px solid var(--line-inner);
+  border-radius: 5px;
+  background: var(--surface-sunken);
+}
+
+.suggestion {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border: none;
+  border-bottom: 1px solid var(--line-cell);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.suggestion:hover {
+  background: var(--acc-bg);
+}
+
+.suggestionPath {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-code);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggestionType {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--fg-fainter);
+  white-space: nowrap;
+}
+
+.code {
+  min-height: 76px;
+  resize: vertical;
+  padding: 7px 8px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.preview {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-label);
+  word-break: break-word;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding-top: 2px;
+}
+
+.apply {
+  flex: 1;
+  padding: 7px;
+  font-size: 11.5px;
+  border-radius: 5px;
+}
+
+.secondary {
+  padding: 7px 10px;
+  font-size: 11.5px;
+  border-radius: 5px;
+}
+
+.remove {
+  color: var(--danger-fg-soft);
+}

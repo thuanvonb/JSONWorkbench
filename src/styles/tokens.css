@@ -1,0 +1,77 @@
+/* Design tokens lifted from the mockup. One place for every colour, so the
+   components below only ever refer to semantic names. */
+:root {
+  --sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Neutral surfaces, lightest to darkest */
+  --surface: oklch(0.995 0.003 80);
+  --surface-sunken: oklch(0.985 0.004 80);
+  --row-alt: oklch(0.978 0.004 80);
+  --bar: oklch(0.975 0.005 80);
+  --bg: oklch(0.955 0.007 80);
+  --head: oklch(0.945 0.007 78);
+  --chrome: oklch(0.925 0.008 78);
+  --hover: oklch(0.91 0.008 78);
+
+  /* Borders, softest to strongest */
+  --line-faint: oklch(0.96 0.004 78);
+  --line-cell: oklch(0.955 0.005 78);
+  --line-row: oklch(0.935 0.006 78);
+  --line-index: oklch(0.92 0.007 78);
+  --line-inner: oklch(0.91 0.008 78);
+  --line-soft: oklch(0.9 0.008 78);
+  --line: oklch(0.885 0.008 75);
+  --line-strong: oklch(0.87 0.009 75);
+  --line-modal: oklch(0.85 0.01 75);
+  --line-dashed: oklch(0.82 0.01 75);
+  --line-hover: oklch(0.78 0.012 75);
+
+  /* Text, darkest to faintest */
+  --fg: oklch(0.29 0.012 60);
+  --fg-cell: oklch(0.3 0.012 60);
+  --fg-head: oklch(0.32 0.012 60);
+  --fg-code: oklch(0.35 0.012 60);
+  --fg-strong: oklch(0.45 0.012 60);
+  --fg-muted: oklch(0.5 0.012 62);
+  --fg-dim: oklch(0.55 0.012 65);
+  --fg-soft: oklch(0.58 0.012 65);
+  --fg-label: oklch(0.62 0.012 65);
+  --fg-faint: oklch(0.66 0.012 65);
+  --fg-fainter: oklch(0.7 0.012 65);
+  --fg-ghost: oklch(0.72 0.012 65);
+  --fg-empty: oklch(0.78 0.012 65);
+  --fg-disabled: oklch(0.85 0.01 75);
+
+  /* Accent (blue) */
+  --acc: oklch(0.58 0.17 259);
+  --acc-hover: oklch(0.51 0.18 259);
+  --acc-link-hover: oklch(0.48 0.17 259);
+  --acc-on: oklch(0.99 0.012 259);
+  --acc-fg: oklch(0.45 0.12 259);
+  --acc-fg-strong: oklch(0.45 0.14 259);
+  --acc-fg-tag: oklch(0.48 0.14 259);
+  --acc-fg-bool: oklch(0.5 0.15 259);
+  --acc-fg-soft: oklch(0.58 0.08 259);
+  --acc-bg: oklch(0.955 0.03 259);
+  --acc-bg-hover: oklch(0.925 0.045 259);
+  --acc-bg-tag: oklch(0.94 0.035 259);
+  --acc-bg-pill: oklch(0.9 0.03 259);
+  --acc-line: oklch(0.88 0.055 259);
+  --acc-line-hover: oklch(0.885 0.055 259);
+  --row-hover: oklch(0.972 0.012 259);
+  --row-selected: oklch(0.965 0.018 259);
+
+  /* Danger (red) */
+  --danger: oklch(0.52 0.15 25);
+  --danger-fg: oklch(0.45 0.15 25);
+  --danger-fg-soft: oklch(0.5 0.14 25);
+  --danger-bg: oklch(0.96 0.025 25);
+  --danger-bg-hover: oklch(0.87 0.02 25);
+  --danger-line: oklch(0.88 0.05 25);
+
+  --scrim: oklch(0.4 0.01 60 / 0.28);
+  --scrim-light: oklch(0.4 0.01 60 / 0.14);
+  --shadow-modal: 0 24px 60px oklch(0.4 0.02 60 / 0.24);
+  --shadow-pop: 0 12px 32px oklch(0.4 0.02 60 / 0.18);
+}

@@ -1,0 +1,44 @@
+.textarea {
+  flex: 1;
+  min-height: 340px;
+  resize: none;
+  padding: 14px 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  border: none;
+  outline: none;
+  background: var(--surface);
+  color: var(--fg);
+}
+
+.dragging {
+  outline: 2px dashed var(--acc);
+  outline-offset: -6px;
+  background: var(--acc-bg);
+}
+
+.fileInput {
+  display: none;
+}
+
+.error {
+  flex: none;
+  padding: 9px 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-top: 1px solid var(--danger-line);
+}
+
+.hint {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-label);
+}
+
+.spacer {
+  margin-left: auto;
+}

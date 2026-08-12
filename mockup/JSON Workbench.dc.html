@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+html, body { margin:0; padding:0; height:100%; background:oklch(0.955 0.007 80); }
+* { box-sizing:border-box; }
+input, textarea, select, button { font-family:inherit; }
+a { color:oklch(0.58 0.17 259); text-decoration:none; }
+a:hover { color:oklch(0.48 0.17 259); }
+::-webkit-scrollbar { width:11px; height:11px; }
+::-webkit-scrollbar-thumb { background:oklch(0.86 0.01 80); border-radius:8px; border:3px solid oklch(0.955 0.007 80); }
+::-webkit-scrollbar-thumb:hover { background:oklch(0.78 0.012 80); }
+::-webkit-scrollbar-track { background:transparent; }
+</style>
+</helmet>
+
+<div style="height:100vh; display:flex; flex-direction:column; font-family:'IBM Plex Sans',system-ui,sans-serif; color:oklch(0.29 0.012 60); background:oklch(0.955 0.007 80); overflow:hidden;">
+
+  <div style="display:flex; align-items:stretch; gap:0; padding:0 12px; background:oklch(0.925 0.008 78); border-bottom:1px solid oklch(0.87 0.009 75); flex:none; height:38px;">
+    <div style="display:flex; align-items:center; gap:8px; padding-right:14px; margin-right:6px; border-right:1px solid oklch(0.87 0.009 75);">
+      <div style="width:9px; height:9px; border-radius:2px; background:oklch(0.58 0.17 259);"></div>
+      <span style="font-size:12px; font-weight:600; letter-spacing:0.01em; white-space:nowrap;">JSON Workbench</span>
+    </div>
+    <div style="display:flex; align-items:stretch; gap:2px; overflow-x:auto; flex:1; min-width:0;">
+      <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="2">
+        <div onClick="{{ tab.onSelect }}" onDoubleClick="{{ tab.onRename }}" title="Double-click to rename" style="display:flex; align-items:center; gap:8px; padding:0 10px 0 12px; cursor:pointer; font-size:12px; border:1px solid transparent; border-bottom:none; border-radius:6px 6px 0 0; align-self:flex-end; height:30px; white-space:nowrap; background:{{ tab.bg }}; color:{{ tab.fg }}; border-color:{{ tab.bc }}; font-weight:{{ tab.fw }};">
+          <sc-if value="{{ tab.renaming }}" hint-placeholder-val="{{ false }}">
+            <input value="{{ renameDraft }}" onChange="{{ onRenameChange }}" onBlur="{{ commitRename }}" onKeyDown="{{ renameKey }}" autoFocus="{{ true }}" style="width:110px; font-size:12px; padding:2px 4px; border:1px solid oklch(0.58 0.17 259); border-radius:3px; outline:none; background:oklch(0.995 0.003 80);" />
+          </sc-if>
+          <sc-if value="{{ tab.notRenaming }}" hint-placeholder-val="{{ true }}">
+            <span>{{ tab.name }}</span>
+          </sc-if>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:oklch(0.62 0.012 65);">{{ tab.count }}</span>
+          <span onClick="{{ tab.onClose }}" style="width:15px; height:15px; display:flex; align-items:center; justify-content:center; border-radius:3px; font-size:13px; line-height:1; color:oklch(0.62 0.012 65); margin-left:-2px;" style-hover="background:oklch(0.87 0.02 25); color:oklch(0.45 0.15 25);">×</span>
+        </div>
+      </sc-for>
+      <div onClick="{{ addTab }}" title="New workspace" style="display:flex; align-items:center; justify-content:center; width:26px; height:30px; align-self:flex-end; cursor:pointer; font-size:16px; color:oklch(0.58 0.012 65); border-radius:6px 6px 0 0;" style-hover="background:oklch(0.90 0.008 78); color:oklch(0.29 0.012 60);">+</div>
+    </div>
+  </div>
+
+  <sc-if value="{{ sourceOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeSource }}" style="position:fixed; inset:0; z-index:60; background:oklch(0.4 0.01 60 / 0.28); display:flex; align-items:center; justify-content:center; padding:40px;">
+      <div onClick="{{ stop }}" style="width:min(860px, 100%); max-height:100%; display:flex; flex-direction:column; background:oklch(0.995 0.003 80); border:1px solid oklch(0.85 0.01 75); border-radius:10px; box-shadow:0 24px 60px oklch(0.4 0.02 60 / 0.24); overflow:hidden;">
+        <div style="flex:none; display:flex; align-items:center; gap:10px; padding:0 12px 0 16px; height:42px; border-bottom:1px solid oklch(0.9 0.008 78); background:oklch(0.975 0.005 80);">
+          <span style="font-size:12.5px; font-weight:600;">Source JSON</span>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:oklch(0.62 0.012 65);">{{ modalSub }}</span>
+          <span onClick="{{ closeSource }}" style="margin-left:auto; cursor:pointer; width:24px; height:24px; display:flex; align-items:center; justify-content:center; border-radius:5px; font-size:17px; color:oklch(0.58 0.012 65);" style-hover="background:oklch(0.91 0.008 78); color:oklch(0.29 0.012 60);">×</span>
+        </div>
+        <textarea ref="{{ rawRef }}" placeholder="Paste a JSON object, an array of objects, or NDJSON…" spellCheck="{{ false }}" style="flex:1; min-height:340px; resize:none; padding:14px 16px; font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.6; border:none; outline:none; background:oklch(0.995 0.003 80); color:oklch(0.29 0.012 60);"></textarea>
+        <sc-if value="{{ hasError }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:none; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.5; color:oklch(0.52 0.15 25); background:oklch(0.96 0.025 25); border-top:1px solid oklch(0.88 0.05 25); padding:9px 16px;">{{ error }}</div>
+        </sc-if>
+        <div style="flex:none; display:flex; align-items:center; gap:8px; padding:10px 12px; border-top:1px solid oklch(0.9 0.008 78); background:oklch(0.975 0.005 80);">
+          <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:oklch(0.62 0.012 65);">{{ sourceHint }}</span>
+          <button onClick="{{ loadDemo }}" style="margin-left:auto; padding:7px 12px; font-size:12px; border:1px solid oklch(0.885 0.008 75); border-radius:6px; background:oklch(0.995 0.003 80); color:oklch(0.45 0.012 60); cursor:pointer;" style-hover="border-color:oklch(0.78 0.012 75);">Sample data</button>
+          <button onClick="{{ closeSource }}" style="padding:7px 12px; font-size:12px; border:1px solid oklch(0.885 0.008 75); border-radius:6px; background:oklch(0.995 0.003 80); color:oklch(0.45 0.012 60); cursor:pointer;" style-hover="border-color:oklch(0.78 0.012 75);">Cancel</button>
+          <button onClick="{{ loadJson }}" style="padding:7px 14px; font-size:12px; font-weight:600; border:none; border-radius:6px; background:oklch(0.58 0.17 259); color:oklch(0.99 0.012 259); cursor:pointer;" style-hover="background:oklch(0.51 0.18 259);">Parse &amp; build table</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <div style="flex:none; display:flex; align-items:center; gap:10px; padding:0 12px; height:40px; background:oklch(0.975 0.005 80); border-bottom:1px solid oklch(0.885 0.008 75);">
+    <div onClick="{{ toggleSource }}" style="display:flex; align-items:center; gap:7px; padding:4px 8px; margin-left:-2px; border-radius:5px; cursor:pointer; font-size:11.5px; color:oklch(0.5 0.012 62); white-space:nowrap;" style-hover="background:oklch(0.93 0.008 78);">
+      <span style="font-size:9px; color:oklch(0.62 0.012 65);">{{ sourceCaret }}</span>
+      <span style="font-family:'JetBrains Mono',monospace; font-size:11px;">{{ summary }}</span>
+    </div>
+    <div style="width:1px; height:18px; background:oklch(0.885 0.008 75); flex:none;"></div>
+    <div style="display:flex; align-items:center; gap:6px; flex:1; min-width:0; overflow-x:auto;">
+      <sc-for list="{{ filterPills }}" as="f" hint-placeholder-count="0">
+        <div style="display:flex; align-items:center; gap:6px; padding:3px 6px 3px 9px; border-radius:20px; font-size:11px; white-space:nowrap; background:oklch(0.955 0.03 259); border:1px solid oklch(0.88 0.055 259); color:oklch(0.45 0.12 259);">
+          <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px;">{{ f.label }}</span>
+          <span onClick="{{ f.onRemove }}" style="cursor:pointer; width:14px; height:14px; display:flex; align-items:center; justify-content:center; border-radius:50%; font-size:12px; line-height:1; color:oklch(0.58 0.08 259);" style-hover="background:oklch(0.885 0.055 259);">×</span>
+        </div>
+      </sc-for>
+      <div onClick="{{ openFilterMenu }}" style="display:flex; align-items:center; gap:5px; padding:3px 9px; border-radius:20px; cursor:pointer; font-size:11px; white-space:nowrap; border:1px dashed oklch(0.82 0.01 75); color:oklch(0.55 0.012 65);" style-hover="border-color:oklch(0.58 0.17 259); color:oklch(0.52 0.15 259);">+ filter</div>
+    </div>
+    <button onClick="{{ openOrganize }}" style="flex:none; padding:5px 10px; font-size:11.5px; border:1px solid oklch(0.885 0.008 75); border-radius:5px; background:oklch(0.995 0.003 80); color:oklch(0.45 0.012 60); cursor:pointer;" style-hover="border-color:oklch(0.78 0.012 75);">Organize</button>
+    <button onClick="{{ addColumn }}" style="flex:none; padding:5px 10px; font-size:11.5px; font-weight:500; border:1px solid oklch(0.88 0.055 259); border-radius:5px; background:oklch(0.955 0.03 259); color:oklch(0.45 0.12 259); cursor:pointer;" style-hover="background:oklch(0.925 0.045 259);">+ Column</button>
+    <input value="{{ search }}" onChange="{{ onSearch }}" placeholder="search all cells" style="width:170px; flex:none; padding:5px 9px; font-size:11.5px; border:1px solid oklch(0.885 0.008 75); border-radius:5px; outline:none; background:oklch(0.995 0.003 80);" style-focus="border-color:oklch(0.58 0.17 259);" />
+    <button onClick="{{ exportCsv }}" style="flex:none; padding:5px 10px; font-size:11.5px; border:1px solid oklch(0.885 0.008 75); border-radius:5px; background:oklch(0.995 0.003 80); color:oklch(0.45 0.012 60); cursor:pointer;" style-hover="border-color:oklch(0.78 0.012 75);">Export CSV</button>
+  </div>
+
+  <div style="flex:1; min-height:0; display:flex;">
+    <div style="flex:1; min-width:0; overflow:auto; background:oklch(0.995 0.003 80);">
+      <sc-if value="{{ hasRows }}" hint-placeholder-val="{{ true }}">
+        <table style="border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; font-size:12px;">
+          <thead style="position:sticky; top:0; z-index:3;">
+            <tr>
+              <th style="position:sticky; left:0; z-index:4; background:oklch(0.945 0.007 78); border-bottom:1px solid oklch(0.87 0.009 75); border-right:1px solid oklch(0.9 0.008 78); padding:0 8px; height:30px; text-align:right; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:400; color:oklch(0.65 0.012 65); width:46px;">#</th>
+              <sc-for list="{{ columns }}" as="col" hint-placeholder-count="4">
+                <th style="background:oklch(0.945 0.007 78); border-bottom:1px solid oklch(0.87 0.009 75); border-right:1px solid oklch(0.9 0.008 78); padding:0; height:30px; text-align:left; font-weight:500; min-width:{{ col.minw }}px;">
+                  <div style="display:flex; align-items:center; gap:6px; padding:0 8px; height:30px;">
+                    <span onClick="{{ col.onSort }}" title="Sort" style="cursor:pointer; font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px; color:{{ col.hfg }}; font-weight:{{ col.hfw }};">{{ col.name }}</span>
+                    <span style="font-size:9px; color:oklch(0.58 0.17 259); width:7px;">{{ col.arrow }}</span>
+                    <sc-if value="{{ col.isJs }}" hint-placeholder-val="{{ false }}">
+                      <span title="Computed column" style="font-family:'JetBrains Mono',monospace; font-size:8.5px; padding:1px 4px; border-radius:3px; background:oklch(0.94 0.035 259); color:oklch(0.48 0.14 259);">fn</span>
+                    </sc-if>
+                    <span onClick="{{ col.onEdit }}" title="Edit column" style="margin-left:auto; cursor:pointer; width:16px; height:16px; display:flex; align-items:center; justify-content:center; border-radius:3px; font-size:12px; color:oklch(0.66 0.012 65);" style-hover="background:oklch(0.89 0.01 78); color:oklch(0.29 0.012 60);">⋯</span>
+                  </div>
+                  <sc-if value="{{ showTypes }}" hint-placeholder-val="{{ false }}">
+                    <div style="padding:0 8px 4px; margin-top:-4px; font-family:'JetBrains Mono',monospace; font-size:9px; color:oklch(0.68 0.012 65); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px;">{{ col.sub }}</div>
+                  </sc-if>
+                </th>
+              </sc-for>
+              <th style="background:oklch(0.945 0.007 78); border-bottom:1px solid oklch(0.87 0.009 75); padding:0; height:30px; width:12px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ rows }}" as="row" hint-placeholder-count="8">
+              <tr style="background:{{ row.bg }};" style-hover="background:oklch(0.972 0.012 259);">
+                <td onClick="{{ row.onIndex }}" title="Inspect full record" style="cursor:pointer; position:sticky; left:0; z-index:1; background:{{ row.bg }}; border-bottom:1px solid oklch(0.935 0.006 78); border-right:1px solid oklch(0.92 0.007 78); padding:{{ padY }}px 8px; text-align:right; font-family:'JetBrains Mono',monospace; font-size:10px; color:oklch(0.72 0.012 65); vertical-align:top;">{{ row.n }}</td>
+                <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="4">
+                  <td onClick="{{ cell.onClick }}" style="cursor:pointer; background:{{ cell.bg }}; border-bottom:1px solid oklch(0.935 0.006 78); border-right:1px solid oklch(0.955 0.005 78); padding:{{ padY }}px 8px; vertical-align:top; max-width:420px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:{{ cell.align }}; font-family:{{ cell.ff }}; font-size:{{ cell.fs }}px; color:{{ cell.fg }}; font-style:{{ cell.fst }};">{{ cell.text }}</td>
+                </sc-for>
+                <td style="border-bottom:1px solid oklch(0.935 0.006 78);"></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </sc-if>
+      <sc-if value="{{ noRows }}" hint-placeholder-val="{{ false }}">
+        <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;">
+          <div style="font-size:12.5px; color:oklch(0.6 0.012 65);">{{ emptyTitle }}</div>
+          <button onClick="{{ emptyAction }}" style="font-size:12px; font-weight:500; padding:8px 16px; border:1px solid oklch(0.88 0.055 259); border-radius:6px; cursor:pointer; background:oklch(0.955 0.03 259); color:oklch(0.45 0.12 259);" style-hover="background:oklch(0.925 0.045 259);">{{ emptyBtn }}</button>
+        </div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{ inspecting }}" hint-placeholder-val="{{ false }}">
+      <div style="width:380px; flex:none; border-left:1px solid oklch(0.885 0.008 75); background:oklch(0.985 0.004 80); display:flex; flex-direction:column;">
+        <div style="flex:none; display:flex; align-items:center; gap:8px; padding:0 10px 0 14px; height:34px; border-bottom:1px solid oklch(0.9 0.008 78);">
+          <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:oklch(0.5 0.012 62);">{{ inspectTitle }}</span>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:oklch(0.7 0.012 65);">{{ inspectKind }}</span>
+          <span onClick="{{ copyInspect }}" style="margin-left:auto; cursor:pointer; padding:2px 8px; border:1px solid oklch(0.89 0.008 78); border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:10px; color:oklch(0.5 0.012 62); background:oklch(0.995 0.003 80);" style-hover="border-color:oklch(0.58 0.17 259); color:oklch(0.45 0.14 259);">{{ copyLabel }}</span>
+          <span onClick="{{ closeInspect }}" style="flex:none; cursor:pointer; width:20px; height:20px; display:flex; align-items:center; justify-content:center; border-radius:4px; font-size:15px; color:oklch(0.6 0.012 65);" style-hover="background:oklch(0.91 0.008 78);">×</span>
+        </div>
+        <pre style="flex:1; margin:0; overflow:auto; padding:12px 14px; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.65; color:oklch(0.35 0.012 60); white-space:pre-wrap; word-break:break-word;">{{ inspectJson }}</pre>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="flex:none; display:flex; align-items:stretch; gap:2px; padding:0 12px; height:29px; background:oklch(0.945 0.007 78); border-top:1px solid oklch(0.885 0.008 75); overflow-x:auto;">
+    <div style="display:flex; align-items:center; padding-right:12px; margin-right:4px; border-right:1px solid oklch(0.89 0.008 75); font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.68 0.012 65); white-space:nowrap;">tables</div>
+    <sc-for list="{{ viewTabs }}" as="v" hint-placeholder-count="1">
+      <div onClick="{{ v.onSelect }}" onDoubleClick="{{ v.onRename }}" title="Double-click to rename" style="display:flex; align-items:center; gap:7px; padding:0 6px 0 11px; cursor:pointer; font-size:11.5px; border:1px solid transparent; border-top:none; border-radius:0 0 6px 6px; align-self:flex-start; height:25px; white-space:nowrap; background:{{ v.bg }}; color:{{ v.fg }}; border-color:{{ v.bc }}; font-weight:{{ v.fw }};">
+        <sc-if value="{{ v.renaming }}" hint-placeholder-val="{{ false }}">
+          <input value="{{ renameDraft }}" onChange="{{ onRenameChange }}" onBlur="{{ commitRename }}" onKeyDown="{{ renameKey }}" autoFocus="{{ true }}" style="width:100px; font-size:11.5px; padding:1px 4px; border:1px solid oklch(0.58 0.17 259); border-radius:3px; outline:none; background:oklch(0.995 0.003 80);" />
+        </sc-if>
+        <sc-if value="{{ v.notRenaming }}" hint-placeholder-val="{{ true }}">
+          <span>{{ v.name }}</span>
+        </sc-if>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:oklch(0.66 0.012 65);">{{ v.meta }}</span>
+        <span onClick="{{ v.onDup }}" title="Duplicate table" style="width:15px; height:15px; display:flex; align-items:center; justify-content:center; border-radius:3px; font-size:10px; color:oklch(0.66 0.012 65);" style-hover="background:oklch(0.9 0.03 259); color:oklch(0.45 0.14 259);">⧉</span>
+        <span onClick="{{ v.onClose }}" title="Delete table" style="width:15px; height:15px; display:flex; align-items:center; justify-content:center; border-radius:3px; font-size:13px; line-height:1; color:oklch(0.66 0.012 65);" style-hover="background:oklch(0.87 0.02 25); color:oklch(0.45 0.15 25);">×</span>
+      </div>
+    </sc-for>
+    <div onClick="{{ addView }}" title="New table on this data" style="display:flex; align-items:center; justify-content:center; width:26px; height:25px; align-self:flex-start; cursor:pointer; font-size:15px; color:oklch(0.58 0.012 65); border-radius:0 0 6px 6px;" style-hover="background:oklch(0.915 0.008 78); color:oklch(0.29 0.012 60);">+</div>
+  </div>
+
+  <div style="flex:none; display:flex; align-items:center; gap:16px; padding:0 14px; height:28px; background:oklch(0.925 0.008 78); border-top:1px solid oklch(0.87 0.009 75); font-family:'JetBrains Mono',monospace; font-size:10.5px; color:oklch(0.5 0.012 62);">
+    <span>{{ footCount }}</span>
+    <sc-for list="{{ aggregates }}" as="agg" hint-placeholder-count="0">
+      <span style="white-space:nowrap;"><span style="color:oklch(0.66 0.012 65);">{{ agg.name }}</span> {{ agg.text }}</span>
+    </sc-for>
+    <span style="margin-left:auto; color:oklch(0.66 0.012 65);">{{ footHint }}</span>
+  </div>
+
+  <sc-if value="{{ organizeOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeOrganize }}" style="position:fixed; inset:0; z-index:55; background:oklch(0.4 0.01 60 / 0.28); display:flex; align-items:center; justify-content:center; padding:40px;">
+      <div onClick="{{ stop }}" style="width:min(520px, 100%); max-height:100%; display:flex; flex-direction:column; background:oklch(0.995 0.003 80); border:1px solid oklch(0.85 0.01 75); border-radius:10px; box-shadow:0 24px 60px oklch(0.4 0.02 60 / 0.24); overflow:hidden;">
+        <div style="flex:none; display:flex; align-items:center; gap:10px; padding:0 12px 0 16px; height:42px; border-bottom:1px solid oklch(0.9 0.008 78); background:oklch(0.975 0.005 80);">
+          <span style="font-size:12.5px; font-weight:600;">Organize columns</span>
+          <span onClick="{{ closeOrganize }}" style="margin-left:auto; cursor:pointer; width:24px; height:24px; display:flex; align-items:center; justify-content:center; border-radius:5px; font-size:17px; color:oklch(0.58 0.012 65);" style-hover="background:oklch(0.91 0.008 78); color:oklch(0.29 0.012 60);">×</span>
+        </div>
+        <div style="flex:1; overflow:auto; padding:8px 0;">
+          <sc-for list="{{ organizeCols }}" as="c" hint-placeholder-count="4">
+            <div style="display:flex; align-items:center; gap:10px; padding:7px 12px 7px 16px; border-bottom:1px solid oklch(0.96 0.004 78);">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:oklch(0.72 0.012 65); width:16px; text-align:right;">{{ c.n }}</span>
+              <div style="display:flex; flex-direction:column; gap:1px; min-width:0; flex:1;">
+                <span style="font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ c.name }}</span>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:oklch(0.66 0.012 65); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ c.sub }}</span>
+              </div>
+              <div style="display:flex; gap:4px; flex:none;">
+                <div onClick="{{ c.onUp }}" title="Move up" style="width:24px; height:24px; display:flex; align-items:center; justify-content:center; border:1px solid oklch(0.9 0.008 78); border-radius:5px; cursor:pointer; font-size:10px; background:oklch(0.985 0.004 80); color:{{ c.upFg }};" style-hover="border-color:oklch(0.78 0.012 75);">▲</div>
+                <div onClick="{{ c.onDown }}" title="Move down" style="width:24px; height:24px; display:flex; align-items:center; justify-content:center; border:1px solid oklch(0.9 0.008 78); border-radius:5px; cursor:pointer; font-size:10px; background:oklch(0.985 0.004 80); color:{{ c.downFg }};" style-hover="border-color:oklch(0.78 0.012 75);">▼</div>
+              </div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ noColumns }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:26px; text-align:center; font-size:12px; color:oklch(0.66 0.012 65);">No columns in this table yet.</div>
+          </sc-if>
+        </div>
+        <div style="flex:none; display:flex; justify-content:flex-end; padding:10px 12px; border-top:1px solid oklch(0.9 0.008 78); background:oklch(0.975 0.005 80);">
+          <button onClick="{{ closeOrganize }}" style="padding:7px 14px; font-size:12px; font-weight:600; border:none; border-radius:6px; background:oklch(0.58 0.17 259); color:oklch(0.99 0.012 259); cursor:pointer;" style-hover="background:oklch(0.51 0.18 259);">Done</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ popOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closePop }}" style="position:fixed; inset:0; z-index:40; background:oklch(0.4 0.01 60 / 0.14);">
+      <div onClick="{{ stop }}" style="position:absolute; width:330px; background:oklch(0.995 0.003 80); border:1px solid oklch(0.85 0.01 75); border-radius:8px; box-shadow:0 12px 32px oklch(0.4 0.02 60 / 0.18); padding:12px; display:flex; flex-direction:column; gap:9px; left:{{ popX }}px; top:{{ popY }}px;">
+
+        <sc-if value="{{ popIsColumn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:9px;">
+            <div style="display:flex; gap:2px; padding:2px; background:oklch(0.945 0.007 78); border-radius:6px;">
+              <div onClick="{{ setKindPath }}" style="flex:1; text-align:center; padding:5px; font-size:11px; border-radius:4px; cursor:pointer; background:{{ kindPathBg }}; color:{{ kindPathFg }}; font-weight:{{ kindPathFw }};">Path</div>
+              <div onClick="{{ setKindJs }}" style="flex:1; text-align:center; padding:5px; font-size:11px; border-radius:4px; cursor:pointer; background:{{ kindJsBg }}; color:{{ kindJsFg }}; font-weight:{{ kindJsFw }};">JavaScript</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:oklch(0.62 0.012 65);">Header</label>
+              <input value="{{ draftName }}" onChange="{{ onDraftName }}" placeholder="column name" style="padding:6px 8px; font-size:12px; border:1px solid oklch(0.885 0.008 75); border-radius:5px; outline:none; background:oklch(0.985 0.004 80);" style-focus="border-color:oklch(0.58 0.17 259);" />
+            </div>
+            <sc-if value="{{ draftIsPath }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:oklch(0.62 0.012 65);">Path</label>
+                <input value="{{ draftPath }}" onChange="{{ onDraftPath }}" placeholder="user.address.city" spellCheck="{{ false }}" style="padding:6px 8px; font-family:'JetBrains Mono',monospace; font-size:11.5px; border:1px solid oklch(0.885 0.008 75); border-radius:5px; outline:none; background:oklch(0.985 0.004 80);" style-focus="border-color:oklch(0.58 0.17 259);" />
+                <div style="max-height:150px; overflow:auto; border:1px solid oklch(0.91 0.008 78); border-radius:5px; background:oklch(0.98 0.004 80);">
+                  <sc-for list="{{ suggestions }}" as="s" hint-placeholder-count="4">
+                    <div onClick="{{ s.onPick }}" style="display:flex; align-items:baseline; gap:8px; padding:5px 8px; cursor:pointer; border-bottom:1px solid oklch(0.955 0.005 78);" style-hover="background:oklch(0.955 0.03 259);">
+                      <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:oklch(0.35 0.012 60); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ s.path }}</span>
+                      <span style="margin-left:auto; font-family:'JetBrains Mono',monospace; font-size:9px; color:oklch(0.68 0.012 65); white-space:nowrap;">{{ s.type }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ draftIsJs }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:oklch(0.62 0.012 65);">Expression — <span style="font-family:'JetBrains Mono',monospace; text-transform:none;">row</span>, <span style="font-family:'JetBrains Mono',monospace; text-transform:none;">i</span> in scope</label>
+                <textarea value="{{ draftCode }}" onChange="{{ onDraftCode }}" placeholder="row.total / row.qty" spellCheck="{{ false }}" style="min-height:76px; resize:vertical; padding:7px 8px; font-family:'JetBrains Mono',monospace; font-size:11.5px; line-height:1.5; border:1px solid oklch(0.885 0.008 75); border-radius:5px; outline:none; background:oklch(0.985 0.004 80);" style-focus="border-color:oklch(0.58 0.17 259);"></textarea>
+                <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:oklch(0.62 0.012 65);">{{ draftPreview }}</div>
+              </div>
+            </sc-if>
+            <div style="display:flex; gap:6px; align-items:center; padding-top:2px;">
+              <button onClick="{{ applyColumn }}" style="flex:1; padding:7px; font-size:11.5px; font-weight:600; border:none; border-radius:5px; background:oklch(0.58 0.17 259); color:oklch(0.99 0.012 259); cursor:pointer;" style-hover="background:oklch(0.51 0.18 259);">{{ draftApplyLabel }}</button>
+              <button onClick="{{ removeColumn }}" style="padding:7px 10px; font-size:11.5px; border:1px solid oklch(0.885 0.008 75); border-radius:5px; background:oklch(0.995 0.003 80); cursor:pointer; color:{{ draftCancelFg }};" style-hover="border-color:oklch(0.78 0.012 75);">{{ draftCancelLabel }}</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ popIsFilter }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:9px;">
+            <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:oklch(0.62 0.012 65);">Add filter</div>
+            <select value="{{ fCol }}" onChange="{{ onFCol }}" style="padding:6px 8px; font-size:11.5px; border:1px solid oklch(0.885 0.008 75); border-radius:5px; outline:none; background:oklch(0.985 0.004 80);">
+              <sc-for list="{{ filterCols }}" as="fc" hint-placeholder-count="3">
+                <option value="{{ fc.id }}">{{ fc.name }}</option>
+              </sc-for>
+            </select>
+            <sc-if value="{{ fIsJs }}" hint-placeholder-val="{{ false }}">
+              <textarea value="{{ fCode }}" onChange="{{ onFCode }}" placeholder="row.total > 100 &amp;&amp; row.status !== 'void'" spellCheck="{{ false }}" style="min-height:64px; resize:vertical; padding:7px 8px; font-family:'JetBrains Mono',monospace; font-size:11.5px; line-height:1.5; border:1px solid oklch(0.885 0.008 75); border-radius:5px; outline:none; background:oklch(0.985 0.004 80);" style-focus="border-color:oklch(0.58 0.17 259);"></textarea>
+            </sc-if>
+            <sc-if value="{{ fIsCol }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; gap:6px;">
+                <select value="{{ fOp }}" onChange="{{ onFOp }}" style="width:130px; flex:none; padding:6px 8px; font-size:11.5px; border:1px solid oklch(0.885 0.008 75); border-radius:5px; outline:none; background:oklch(0.985 0.004 80);">
+                  <sc-for list="{{ ops }}" as="op" hint-placeholder-count="4">
+                    <option value="{{ op.id }}">{{ op.name }}</option>
+                  </sc-for>
+                </select>
+                <input value="{{ fVal }}" onChange="{{ onFVal }}" placeholder="value" style="flex:1; min-width:0; padding:6px 8px; font-family:'JetBrains Mono',monospace; font-size:11.5px; border:1px solid oklch(0.885 0.008 75); border-radius:5px; outline:none; background:oklch(0.985 0.004 80);" style-focus="border-color:oklch(0.58 0.17 259);" />
+              </div>
+            </sc-if>
+            <button onClick="{{ applyFilter }}" style="padding:7px; font-size:11.5px; font-weight:600; border:none; border-radius:5px; background:oklch(0.58 0.17 259); color:oklch(0.99 0.012 259); cursor:pointer;" style-hover="background:oklch(0.51 0.18 259);">Add filter</button>
+          </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;compact&quot;,&quot;balanced&quot;,&quot;roomy&quot;],&quot;default&quot;:&quot;balanced&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Table&quot;},&quot;zebra&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Table&quot;},&quot;showTypeRow&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Table&quot;},&quot;maxRows&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:300,&quot;min&quot;:50,&quot;max&quot;:5000,&quot;step&quot;:50,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Table&quot;}}">
+class Component extends DCLogic {
+  state = {
+    workspaces: [],
+    activeId: null,
+    booted: false,
+    sourceOpen: true,
+    search: '',
+    pop: null,
+    draft: null,
+    filterDraft: null,
+    inspect: null,
+    renamingId: null,
+    renameDraft: '',
+    error: ''
+  };
+
+  // ---------- lifecycle ----------
+  componentDidMount() {
+    let loaded = null;
+    try { loaded = JSON.parse(localStorage.getItem('json-workbench.v1') || 'null'); } catch (e) { loaded = null; }
+    if (loaded && loaded.workspaces && loaded.workspaces.length) {
+      const ws = loaded.workspaces.map(w => this.migrate(w));
+      this.setState({ workspaces: ws, activeId: loaded.activeId || ws[0].id, booted: true, sourceOpen: false });
+    } else {
+      const w = this.makeWorkspace('Workspace 1', null);
+      this.setState({ workspaces: [w], activeId: w.id, booted: true, sourceOpen: false });
+    }
+    this.rawRef = React.createRef();
+    this._compiled = {};
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    const a = this.active();
+    if (a && this.rawRef && this.rawRef.current && (this._syncedId !== a.id || this._syncedNode !== this.rawRef.current)) {
+      this.rawRef.current.value = a.raw || '';
+      this._syncedId = a.id;
+      this._syncedNode = this.rawRef.current;
+    }
+    if (this.state.booted) this.persist();
+  }
+
+  persist() {
+    if (this._saveT) clearTimeout(this._saveT);
+    this._saveT = setTimeout(() => {
+      try {
+        localStorage.setItem('json-workbench.v1', JSON.stringify({
+          activeId: this.state.activeId,
+          workspaces: this.state.workspaces.map(w => ({ id: w.id, name: w.name, raw: w.raw, rows: w.rows, views: w.views, viewId: w.viewId }))
+        }));
+      } catch (e) { /* quota */ }
+    }, 400);
+  }
+
+  // ---------- data helpers ----------
+  uid() { return Math.random().toString(36).slice(2, 9); }
+
+  demoRows() {
+    return [
+      { id: 'ord_1041', customer: { name: 'Mai Tran', tier: 'gold', city: 'Da Nang' }, status: 'paid', total: 248.5, qty: 3, items: [{ sku: 'KB-01', price: 89 }, { sku: 'MS-12', price: 39 }], created: '2026-07-02T09:14:00Z' },
+      { id: 'ord_1042', customer: { name: 'Leo Fischer', tier: 'basic', city: 'Berlin' }, status: 'pending', total: 42, qty: 1, items: [{ sku: 'CB-04', price: 42 }], created: '2026-07-02T11:41:00Z' },
+      { id: 'ord_1043', customer: { name: 'Sara Ng', tier: 'gold', city: 'Singapore' }, status: 'paid', total: 1310.75, qty: 8, items: [{ sku: 'DK-30', price: 690 }, { sku: 'KB-01', price: 89 }], created: '2026-07-03T02:05:00Z' },
+      { id: 'ord_1044', customer: { name: 'Tomás Ruiz', tier: 'silver', city: 'Madrid' }, status: 'refunded', total: 99.9, qty: 2, items: [{ sku: 'MS-12', price: 39 }], created: '2026-07-03T15:22:00Z' },
+      { id: 'ord_1045', customer: { name: 'Amara Obi', tier: 'silver', city: 'Lagos' }, status: 'paid', total: 517.2, qty: 5, items: [{ sku: 'DK-30', price: 690 }], created: '2026-07-04T08:00:00Z' },
+      { id: 'ord_1046', customer: { name: 'Jun Park', tier: 'basic', city: 'Seoul' }, status: 'pending', total: 0, qty: 0, items: [], created: '2026-07-04T19:37:00Z' }
+    ];
+  }
+
+  makeWorkspace(name, rows) {
+    const v = { id: this.uid(), name: 'Table 1', columns: [], filters: [], sort: null };
+    return { id: this.uid(), name: name || 'Workspace', raw: rows ? JSON.stringify(rows, null, 2) : '', rows: rows || [], views: [v], viewId: v.id };
+  }
+
+  migrate(w) {
+    const o = Object.assign({ raw: '', rows: [] }, w);
+    if (!o.views || !o.views.length) {
+      const v = { id: this.uid(), name: 'Table 1', columns: o.columns || [], filters: o.filters || [], sort: o.sort || null };
+      o.views = [v]; o.viewId = v.id;
+    }
+    if (!o.views.find(v => v.id === o.viewId)) o.viewId = o.views[0].id;
+    delete o.columns; delete o.filters; delete o.sort;
+    return o;
+  }
+
+  view() { const a = this.active(); return a ? (a.views.find(v => v.id === a.viewId) || a.views[0]) : null; }
+
+  updateView(patch) {
+    this.setState(s => ({ workspaces: s.workspaces.map(w => {
+      if (w.id !== s.activeId) return w;
+      return Object.assign({}, w, { views: w.views.map(v => v.id === w.viewId ? Object.assign({}, v, typeof patch === 'function' ? patch(v) : patch) : v) });
+    }) }));
+  }
+
+  active() { return this.state.workspaces.find(w => w.id === this.state.activeId) || null; }
+
+  updateActive(patch) {
+    this.setState(s => ({ workspaces: s.workspaces.map(w => w.id === s.activeId ? Object.assign({}, w, typeof patch === 'function' ? patch(w) : patch) : w) }));
+  }
+
+  getPath(obj, path) {
+    if (!path) return undefined;
+    let cur = obj;
+    const parts = String(path).replace(/\[(\d+)\]/g, '.$1').split('.').filter(p => p !== '');
+    for (const p of parts) {
+      if (cur === null || cur === undefined) return undefined;
+      cur = cur[p];
+    }
+    return cur;
+  }
+
+  typeOf(v) {
+    if (v === null) return 'null';
+    if (Array.isArray(v)) return 'array';
+    if (v === undefined) return '—';
+    return typeof v;
+  }
+
+  inferColumns(rows) {
+    const seen = [];
+    const walk = (obj, prefix, depth) => {
+      if (depth > 3) return;
+      for (const k of Object.keys(obj)) {
+        const v = obj[k];
+        const path = prefix ? prefix + '.' + k : k;
+        if (v && typeof v === 'object' && !Array.isArray(v) && depth < 3) walk(v, path, depth + 1);
+        else if (!seen.includes(path)) seen.push(path);
+      }
+    };
+    rows.slice(0, 40).forEach(r => { if (r && typeof r === 'object' && !Array.isArray(r)) walk(r, '', 1); });
+    return seen.slice(0, 14).map(p => ({ id: this.uid(), name: p.split('.').slice(-1)[0], kind: 'path', path: p }));
+  }
+
+  allPaths(rows) {
+    const seen = [];
+    const walk = (obj, prefix, depth) => {
+      if (depth > 4) return;
+      for (const k of Object.keys(obj)) {
+        const v = obj[k];
+        const path = prefix ? prefix + '.' + k : k;
+        if (!seen.find(s => s.path === path)) seen.push({ path: path, type: this.typeOf(v) });
+        if (v && typeof v === 'object' && !Array.isArray(v)) walk(v, path, depth + 1);
+      }
+    };
+    rows.slice(0, 40).forEach(r => { if (r && typeof r === 'object' && !Array.isArray(r)) walk(r, '', 1); });
+    return seen;
+  }
+
+  compile(code) {
+    if (!code) return null;
+    if (this._compiled && this._compiled[code]) return this._compiled[code];
+    let fn;
+    try { fn = new Function('row', 'i', 'return (' + code + ');'); }
+    catch (e) { fn = () => ({ __err: e.message }); }
+    if (!this._compiled) this._compiled = {};
+    this._compiled[code] = fn;
+    return fn;
+  }
+
+  cellValue(col, row, i) {
+    if (col.kind === 'js') {
+      try {
+        const f = this.compile(col.code);
+        if (!f) return undefined;
+        let v = f(row, i);
+        if (typeof v === 'function') v = v(row, i);
+        return v;
+      } catch (e) { return { __err: e.message }; }
+    }
+    return this.getPath(row, col.path);
+  }
+
+  fmt(v) {
+    const mono = "'JetBrains Mono',monospace";
+    const sans = "'IBM Plex Sans',sans-serif";
+    if (v && typeof v === 'object' && v.__err) return { text: '⚠ ' + v.__err, fg: 'oklch(0.52 0.15 25)', ff: mono, fs: 10.5, align: 'left', fst: 'normal' };
+    if (v === undefined) return { text: '—', fg: 'oklch(0.78 0.012 65)', ff: sans, fs: 12, align: 'left', fst: 'normal' };
+    if (v === null) return { text: 'null', fg: 'oklch(0.72 0.012 65)', ff: mono, fs: 11, align: 'left', fst: 'italic' };
+    if (typeof v === 'number') return { text: Number.isInteger(v) ? String(v) : String(v), fg: 'oklch(0.3 0.012 60)', ff: mono, fs: 11.5, align: 'right', fst: 'normal' };
+    if (typeof v === 'boolean') return { text: String(v), fg: 'oklch(0.5 0.15 259)', ff: mono, fs: 11, align: 'left', fst: 'normal' };
+    if (typeof v === 'object') {
+      let s;
+      try { s = JSON.stringify(v); } catch (e) { s = '[object]'; }
+      if (s.length > 90) s = s.slice(0, 90) + '…';
+      return { text: s, fg: 'oklch(0.58 0.012 65)', ff: mono, fs: 10.5, align: 'left', fst: 'normal' };
+    }
+    return { text: String(v), fg: 'oklch(0.3 0.012 60)', ff: sans, fs: 12, align: 'left', fst: 'normal' };
+  }
+
+  passesFilter(f, row, i, cols) {
+    if (f.kind === 'js') {
+      try {
+        const fn = this.compile(f.code);
+        let r = fn ? fn(row, i) : true;
+        if (typeof r === 'function') r = r(row, i);
+        return !!r;
+      } catch (e) { return true; }
+    }
+    const col = cols.find(c => c.id === f.colId);
+    if (!col) return true;
+    const v = this.cellValue(col, row, i);
+    const sv = v === null || v === undefined ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v));
+    const nv = typeof v === 'number' ? v : parseFloat(sv);
+    const t = f.value == null ? '' : String(f.value);
+    const nt = parseFloat(t);
+    switch (f.op) {
+      case 'contains': return sv.toLowerCase().includes(t.toLowerCase());
+      case 'ncontains': return !sv.toLowerCase().includes(t.toLowerCase());
+      case 'eq': return sv.toLowerCase() === t.toLowerCase();
+      case 'ne': return sv.toLowerCase() !== t.toLowerCase();
+      case 'gt': return !isNaN(nv) && !isNaN(nt) && nv > nt;
+      case 'gte': return !isNaN(nv) && !isNaN(nt) && nv >= nt;
+      case 'lt': return !isNaN(nv) && !isNaN(nt) && nv < nt;
+      case 'lte': return !isNaN(nv) && !isNaN(nt) && nv <= nt;
+      case 'empty': return sv === '';
+      case 'nempty': return sv !== '';
+      case 'regex': { try { return new RegExp(t, 'i').test(sv); } catch (e) { return true; } }
+      default: return true;
+    }
+  }
+
+  moveColumn(i, dir) {
+    const j = i + dir;
+    this.updateView(v => {
+      if (j < 0 || j >= v.columns.length) return {};
+      const cols = v.columns.slice();
+      const t = cols[i]; cols[i] = cols[j]; cols[j] = t;
+      return { columns: cols };
+    });
+  }
+
+  popPos(r, w, h) {
+    const m = 12;
+    const x = Math.max(m, Math.min(r.right - w, window.innerWidth - w - m));
+    const y = Math.max(m, Math.min(r.bottom + 6, window.innerHeight - h - m));
+    return { x: x, y: y };
+  }
+
+  opList() {
+    return [
+      { id: 'contains', name: 'contains' }, { id: 'ncontains', name: "doesn't contain" },
+      { id: 'eq', name: 'is' }, { id: 'ne', name: 'is not' },
+      { id: 'gt', name: '>' }, { id: 'gte', name: '≥' }, { id: 'lt', name: '<' }, { id: 'lte', name: '≤' },
+      { id: 'empty', name: 'is empty' }, { id: 'nempty', name: 'is not empty' }, { id: 'regex', name: 'matches /re/' }
+    ];
+  }
+
+  // ---------- actions ----------
+  loadJson = () => {
+    const txt = (this.rawRef && this.rawRef.current ? this.rawRef.current.value : '').trim();
+    if (!txt) { this.setState({ error: 'Nothing to parse.' }); return; }
+    let data = null;
+    try { data = JSON.parse(txt); }
+    catch (e1) {
+      const lines = txt.split('\n').map(l => l.trim()).filter(Boolean);
+      try { data = lines.map(l => JSON.parse(l)); }
+      catch (e2) { this.setState({ error: e1.message }); return; }
+    }
+    let rows;
+    if (Array.isArray(data)) rows = data;
+    else if (data && typeof data === 'object') {
+      const arrKey = Object.keys(data).find(k => Array.isArray(data[k]) && data[k].length && typeof data[k][0] === 'object');
+      rows = arrKey ? data[arrKey] : [data];
+    } else rows = [{ value: data }];
+    const a = this.active();
+    const keep = a && a.rows.length && this.sameShape(a.rows[0], rows[0]);
+    const fresh = { id: this.uid(), name: 'Table 1', columns: [], filters: [], sort: null };
+    this.updateActive(keep ? { raw: txt, rows: rows } : { raw: txt, rows: rows, views: [fresh], viewId: fresh.id });
+    this.setState({ error: '', sourceOpen: false, inspect: null });
+  };
+
+  sameShape(a, b) {
+    if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false;
+    const ka = Object.keys(a).sort().join(','), kb = Object.keys(b).sort().join(',');
+    return ka === kb;
+  }
+
+  loadDemo = () => {
+    const rows = this.demoRows();
+    if (this.rawRef && this.rawRef.current) this.rawRef.current.value = JSON.stringify(rows, null, 2);
+    const nv = { id: this.uid(), name: 'Table 1', columns: [], filters: [], sort: null };
+    this.updateActive({ raw: JSON.stringify(rows, null, 2), rows: rows, views: [nv], viewId: nv.id });
+    this.setState({ error: '', sourceOpen: false });
+  };
+
+  exportCsv = () => {
+    const a = this.active(); const vw = this.view(); if (!a || !vw) return;
+    const rows = this.visibleRows(a, vw);
+    const esc = s => '"' + String(s).replace(/"/g, '""') + '"';
+    const lines = [vw.columns.map(c => esc(c.name)).join(',')];
+    rows.forEach(r => lines.push(vw.columns.map(c => {
+      const v = this.cellValue(c, r.row, r.i);
+      return esc(v === null || v === undefined ? '' : (typeof v === 'object' ? JSON.stringify(v) : v));
+    }).join(',')));
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const el = document.createElement('a');
+    el.href = url; el.download = ((a.name || 'data') + '-' + (vw.name || 'table')).replace(/\s+/g, '-').toLowerCase() + '.csv';
+    document.body.appendChild(el); el.click(); document.body.removeChild(el);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  visibleRows(a, v) {
+    const q = this.state.search.trim().toLowerCase();
+    let out = a.rows.map((row, i) => ({ row: row, i: i }));
+    v.filters.forEach(f => { out = out.filter(r => this.passesFilter(f, r.row, r.i, v.columns)); });
+    if (q) out = out.filter(r => v.columns.some(c => {
+      const v = this.cellValue(c, r.row, r.i);
+      const s = v === null || v === undefined ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v));
+      return s.toLowerCase().includes(q);
+    }));
+    if (v.sort) {
+      const col = v.columns.find(c => c.id === v.sort.colId);
+      if (col) {
+        const dir = v.sort.dir === 'desc' ? -1 : 1;
+        out = out.slice().sort((x, y) => {
+          const vx = this.cellValue(col, x.row, x.i), vy = this.cellValue(col, y.row, y.i);
+          if (typeof vx === 'number' && typeof vy === 'number') return (vx - vy) * dir;
+          const sx = vx == null ? '' : String(vx), sy = vy == null ? '' : String(vy);
+          return sx.localeCompare(sy, undefined, { numeric: true }) * dir;
+        });
+      }
+    }
+    return out;
+  }
+
+  // ---------- render ----------
+  renderVals() {
+    const a = this.active();
+    const vw = this.view();
+    const density = this.props.density || 'balanced';
+    const padY = density === 'roomy' ? 9 : density === 'balanced' ? 6 : 4;
+    const maxRows = this.props.maxRows || 300;
+    const zebra = this.props.zebra !== false;
+    const showTypes = this.props.showTypeRow !== false;
+    const st = this.state;
+
+    const tabs = st.workspaces.map(w => ({
+      key: w.id, name: w.name, count: w.rows.length ? String(w.rows.length) : '',
+      renaming: st.renamingId === w.id, notRenaming: st.renamingId !== w.id,
+      bg: w.id === st.activeId ? 'oklch(0.995 0.003 80)' : 'transparent',
+      fg: w.id === st.activeId ? 'oklch(0.29 0.012 60)' : 'oklch(0.55 0.012 65)',
+      bc: w.id === st.activeId ? 'oklch(0.87 0.009 75)' : 'transparent',
+      fw: w.id === st.activeId ? '600' : '400',
+      onSelect: () => this.setState({ activeId: w.id, inspect: null, sourceOpen: false, search: '' }),
+      onRename: () => this.setState({ renamingId: w.id, renameDraft: w.name }),
+      onClose: e => {
+        e.stopPropagation();
+        this.setState(s => {
+          const left = s.workspaces.filter(x => x.id !== w.id);
+          if (!left.length) { const n = this.makeWorkspace('Workspace 1', null); return { workspaces: [n], activeId: n.id, sourceOpen: true }; }
+          return { workspaces: left, activeId: s.activeId === w.id ? left[0].id : s.activeId };
+        });
+      }
+    }));
+
+    const vals = {
+      tabs: tabs,
+      padY: padY,
+      showTypes: showTypes,
+      search: st.search,
+      error: st.error,
+      hasError: !!st.error,
+      sourceOpen: st.sourceOpen,
+      sourceCaret: '✎',
+      closeSource: () => this.setState({ sourceOpen: false, error: '' }),
+      modalSub: a ? a.name : '',
+      rawRef: this.rawRef,
+      renameDraft: st.renameDraft,
+      addTab: () => {
+        const w = this.makeWorkspace('Workspace ' + (st.workspaces.length + 1), null);
+        this._syncedId = null;
+        this.setState(s => ({ workspaces: s.workspaces.concat([w]), activeId: w.id, sourceOpen: false, search: '', inspect: null }));
+      },
+      onRenameChange: e => this.setState({ renameDraft: e.target.value }),
+      commitRename: () => this.setState(s => ({ workspaces: s.workspaces.map(w => {
+        const nw = w.id === s.renamingId ? Object.assign({}, w, { name: s.renameDraft || w.name }) : w;
+        if (nw.views && nw.views.find(v => v.id === s.renamingId)) return Object.assign({}, nw, { views: nw.views.map(v => v.id === s.renamingId ? Object.assign({}, v, { name: s.renameDraft || v.name }) : v) });
+        return nw;
+      }), renamingId: null })),
+      renameKey: e => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') this.setState({ renamingId: null }); },
+      toggleSource: () => this.setState(s => ({ sourceOpen: !s.sourceOpen })),
+      loadJson: this.loadJson,
+      loadDemo: this.loadDemo,
+      exportCsv: this.exportCsv,
+      onSearch: e => this.setState({ search: e.target.value }),
+      stop: e => e.stopPropagation(),
+      closePop: () => this.setState({ pop: null }),
+      popOpen: !!st.pop,
+      popX: st.pop ? st.pop.x : 0,
+      popY: st.pop ? st.pop.y : 0,
+      popIsColumn: !!st.pop && st.pop.type === 'column',
+      popIsFilter: !!st.pop && st.pop.type === 'filter',
+      ops: this.opList(),
+      sourceHint: 'Arrays, single objects and NDJSON all work. Columns are inferred on parse.',
+      footHint: 'click a cell for its raw value · click # for the whole record'
+    };
+
+    if (!a || !vw) return Object.assign(vals, { columns: [], rows: [], hasRows: false, noRows: true, summary: 'no workspace', footCount: '', filterPills: [], aggregates: [], viewTabs: [] });
+
+    const vis = this.visibleRows(a, vw);
+    const shown = vis.slice(0, maxRows);
+
+    vals.columns = vw.columns.map(c => {
+      const sorted = vw.sort && vw.sort.colId === c.id;
+      return {
+        key: c.id, name: c.name || '(unnamed)',
+        sub: c.kind === 'js' ? c.code : c.path,
+        isJs: c.kind === 'js',
+        minw: c.kind === 'js' ? 150 : 130,
+        arrow: sorted ? (vw.sort.dir === 'asc' ? '▲' : '▼') : '',
+        hfg: sorted ? 'oklch(0.45 0.14 259)' : 'oklch(0.32 0.012 60)',
+        hfw: sorted ? '600' : '500',
+        onSort: () => this.updateView(v => ({ sort: v.sort && v.sort.colId === c.id ? (v.sort.dir === 'asc' ? { colId: c.id, dir: 'desc' } : null) : { colId: c.id, dir: 'asc' } })),
+        onEdit: e => {
+          e.stopPropagation();
+          const r = e.currentTarget.getBoundingClientRect();
+          const p = this.popPos(r, 330, 400);
+          this.setState({ pop: { type: 'column', id: c.id, x: p.x, y: p.y }, draft: Object.assign({}, c) });
+        }
+      };
+    });
+
+    const ins = st.inspect;
+    vals.rows = shown.map((r, n) => ({
+      key: r.i, n: r.i + 1,
+      bg: ins && ins.i === r.i ? 'oklch(0.965 0.018 259)' : (zebra && n % 2 === 1 ? 'oklch(0.978 0.004 80)' : 'oklch(0.995 0.003 80)'),
+      onIndex: () => this.setState(s => ({ inspect: s.inspect && s.inspect.kind === 'row' && s.inspect.i === r.i ? null : { kind: 'row', i: r.i } })),
+      cells: vw.columns.map(c => Object.assign({
+        key: c.id,
+        bg: ins && ins.kind === 'cell' && ins.i === r.i && ins.colId === c.id ? 'oklch(0.925 0.045 259)' : 'transparent',
+        onClick: () => this.setState(s => ({ inspect: s.inspect && s.inspect.kind === 'cell' && s.inspect.i === r.i && s.inspect.colId === c.id ? null : { kind: 'cell', i: r.i, colId: c.id } }))
+      }, this.fmt(this.cellValue(c, r.row, r.i))))
+    }));
+
+    vals.hasRows = a.rows.length > 0 && vw.columns.length > 0;
+    vals.noRows = !vals.hasRows;
+    vals.emptyTitle = a.rows.length ? 'This table has no columns yet.' : 'No data set up in this workspace yet.';
+    vals.emptyBtn = a.rows.length ? 'Add a column' : 'Set up source JSON';
+    vals.emptyAction = a.rows.length ? (e => vals.addColumn(e)) : (() => this.setState({ sourceOpen: true }));
+    vals.summary = a.rows.length ? a.rows.length + ' records · ' + vw.columns.length + ' columns · ' + this.allPaths(a.rows).length + ' paths' : 'no data yet';
+    vals.footCount = vis.length === a.rows.length ? a.rows.length + ' rows' : vis.length + ' of ' + a.rows.length + ' rows';
+    if (vis.length > maxRows) vals.footCount += ' · showing first ' + maxRows;
+
+    vals.filterPills = vw.filters.map(f => {
+      let label;
+      if (f.kind === 'js') label = 'js: ' + (f.code.length > 34 ? f.code.slice(0, 34) + '…' : f.code);
+      else {
+        const c = vw.columns.find(x => x.id === f.colId);
+        const op = this.opList().find(o => o.id === f.op);
+        label = (c ? c.name : '?') + ' ' + (op ? op.name : f.op) + (f.op === 'empty' || f.op === 'nempty' ? '' : ' ' + f.value);
+      }
+      return { key: f.id, label: label, onRemove: () => this.updateView(v => ({ filters: v.filters.filter(x => x.id !== f.id) })) };
+    });
+
+    vals.aggregates = vw.columns.filter(c => {
+      const v = vis.length ? this.cellValue(c, vis[0].row, vis[0].i) : null;
+      return typeof v === 'number';
+    }).slice(0, 3).map(c => {
+      const nums = vis.map(r => this.cellValue(c, r.row, r.i)).filter(v => typeof v === 'number' && isFinite(v));
+      const sum = nums.reduce((x, y) => x + y, 0);
+      const avg = nums.length ? sum / nums.length : 0;
+      const rnd = n => Math.round(n * 100) / 100;
+      return { key: c.id, name: c.name, text: 'Σ ' + rnd(sum) + '  x̄ ' + rnd(avg) };
+    });
+
+    const insRow = ins && a.rows[ins.i] !== undefined ? a.rows[ins.i] : null;
+    vals.inspecting = !!ins && insRow !== null;
+    if (vals.inspecting) {
+      if (ins.kind === 'row') {
+        vals.inspectTitle = 'row ' + (ins.i + 1);
+        vals.inspectKind = 'full record';
+        vals.inspectJson = JSON.stringify(insRow, null, 2);
+      } else {
+        const c = vw.columns.find(x => x.id === ins.colId);
+        const v = c ? this.cellValue(c, insRow, ins.i) : undefined;
+        vals.inspectTitle = 'row ' + (ins.i + 1) + ' · ' + (c ? c.name : '?');
+        vals.inspectKind = this.typeOf(v);
+        vals.inspectJson = v === undefined ? '' : (typeof v === 'string' ? v : JSON.stringify(v, null, 2));
+      }
+    } else { vals.inspectTitle = ''; vals.inspectKind = ''; vals.inspectJson = ''; }
+    vals.closeInspect = () => this.setState({ inspect: null });
+    vals.copyInspect = () => {
+      const t = vals.inspectJson;
+      if (navigator.clipboard) navigator.clipboard.writeText(t).then(() => {
+        this.setState({ copied: true });
+        clearTimeout(this._copyT);
+        this._copyT = setTimeout(() => this.setState({ copied: false }), 1200);
+      });
+    };
+    vals.copyLabel = st.copied ? 'copied' : 'copy';
+
+    vals.organizeOpen = !!st.organizeOpen;
+    vals.openOrganize = () => this.setState({ organizeOpen: true });
+    vals.closeOrganize = () => this.setState({ organizeOpen: false });
+    vals.organizeCols = vw.columns.map((c, i) => ({
+      key: c.id, n: i + 1, name: c.name || '(unnamed)', sub: c.kind === 'js' ? c.code : c.path,
+      upFg: i === 0 ? 'oklch(0.85 0.01 75)' : 'oklch(0.45 0.012 60)',
+      downFg: i === vw.columns.length - 1 ? 'oklch(0.85 0.01 75)' : 'oklch(0.45 0.012 60)',
+      onUp: () => this.moveColumn(i, -1),
+      onDown: () => this.moveColumn(i, 1)
+    }));
+    vals.hasColumns = vw.columns.length > 0;
+    vals.noColumns = vw.columns.length === 0;
+
+    vals.addColumn = e => {
+      const c = { id: this.uid(), name: '', kind: 'path', path: '', isNew: true };
+      const r = e && e.currentTarget ? e.currentTarget.getBoundingClientRect() : { right: window.innerWidth - 12, bottom: 100 };
+      const p = this.popPos(r, 330, 400);
+      this.setState({ pop: { type: 'column', id: c.id, x: p.x, y: p.y }, draft: c });
+    };
+
+    const d = st.draft;
+    if (d) {
+      const q = (d.path || '').toLowerCase();
+      vals.draftName = d.name || '';
+      vals.draftPath = d.path || '';
+      vals.draftCode = d.code || '';
+      vals.draftIsPath = d.kind !== 'js';
+      vals.draftIsJs = d.kind === 'js';
+      vals.kindPathBg = d.kind !== 'js' ? 'oklch(0.995 0.003 80)' : 'transparent';
+      vals.kindPathFg = d.kind !== 'js' ? 'oklch(0.29 0.012 60)' : 'oklch(0.6 0.012 65)';
+      vals.kindPathFw = d.kind !== 'js' ? '600' : '400';
+      vals.kindJsBg = d.kind === 'js' ? 'oklch(0.995 0.003 80)' : 'transparent';
+      vals.kindJsFg = d.kind === 'js' ? 'oklch(0.29 0.012 60)' : 'oklch(0.6 0.012 65)';
+      vals.kindJsFw = d.kind === 'js' ? '600' : '400';
+      vals.suggestions = this.allPaths(a.rows).filter(p => !q || p.path.toLowerCase().includes(q)).slice(0, 40).map(p => ({
+        key: p.path, path: p.path, type: p.type,
+        onPick: () => this.setState(s => ({ draft: Object.assign({}, s.draft, { path: p.path, name: (!s.draft.name || vw.columns.find(c => c.id === s.draft.id && c.path && s.draft.name === c.path.split('.').slice(-1)[0])) ? p.path.split('.').slice(-1)[0] : s.draft.name }) }))
+      }));
+      let prev = '';
+      if (d.kind === 'js' && a.rows.length) {
+        const v = this.cellValue({ kind: 'js', code: d.code }, a.rows[0], 0);
+        prev = v && v.__err ? '⚠ ' + v.__err : 'row 1 → ' + this.fmt(v).text;
+      }
+      vals.draftPreview = prev;
+      vals.onDraftName = e => { const v = e.target.value; this.setState(s => ({ draft: Object.assign({}, s.draft, { name: v }) })); };
+      vals.onDraftPath = e => { const v = e.target.value; this.setState(s => ({ draft: Object.assign({}, s.draft, { path: v }) })); };
+      vals.onDraftCode = e => { const v = e.target.value; this.setState(s => ({ draft: Object.assign({}, s.draft, { code: v }) })); };
+      vals.setKindPath = () => this.setState(s => ({ draft: Object.assign({}, s.draft, { kind: 'path' }) }));
+      vals.setKindJs = () => this.setState(s => ({ draft: Object.assign({}, s.draft, { kind: 'js' }) }));
+      vals.draftIsNew = !!d.isNew;
+      vals.draftApplyLabel = d.isNew ? 'Add column' : 'Apply';
+      vals.draftCancelLabel = d.isNew ? 'Cancel' : 'Remove';
+      vals.draftCancelFg = d.isNew ? 'oklch(0.45 0.012 60)' : 'oklch(0.5 0.14 25)';
+      vals.applyColumn = () => {
+        const next = { id: d.id, name: d.name || d.path || 'column', kind: d.kind, path: d.path, code: d.code };
+        if (d.isNew) this.updateView(v => ({ columns: v.columns.concat([next]) }));
+        else this.updateView(v => ({ columns: v.columns.map(c => c.id === d.id ? Object.assign({}, c, next) : c) }));
+        this.setState({ pop: null, draft: null });
+      };
+      vals.removeColumn = () => {
+        if (!d.isNew) this.updateView(v => ({ columns: v.columns.filter(c => c.id !== d.id), filters: v.filters.filter(f => f.colId !== d.id) }));
+        this.setState({ pop: null, draft: null });
+      };
+    }
+
+    vals.openFilterMenu = e => {
+      const r = e.currentTarget.getBoundingClientRect();
+      const p = this.popPos({ right: r.left + 330, bottom: r.bottom }, 330, 260);
+      this.setState({
+        pop: { type: 'filter', x: p.x, y: p.y },
+        filterDraft: { colId: vw.columns.length ? vw.columns[0].id : '@js', op: 'contains', value: '', code: '' }
+      });
+    };
+    const fd = st.filterDraft || { colId: '', op: 'contains', value: '', code: '' };
+    vals.filterCols = vw.columns.map(c => ({ key: c.id, id: c.id, name: c.name })).concat([{ key: '@js', id: '@js', name: 'JavaScript expression…' }]);
+    vals.fCol = fd.colId; vals.fOp = fd.op; vals.fVal = fd.value; vals.fCode = fd.code;
+    vals.fIsJs = fd.colId === '@js'; vals.fIsCol = fd.colId !== '@js';
+    vals.onFCol = e => { const v = e.target.value; this.setState(s => ({ filterDraft: Object.assign({}, s.filterDraft, { colId: v }) })); };
+    vals.onFOp = e => { const v = e.target.value; this.setState(s => ({ filterDraft: Object.assign({}, s.filterDraft, { op: v }) })); };
+    vals.onFVal = e => { const v = e.target.value; this.setState(s => ({ filterDraft: Object.assign({}, s.filterDraft, { value: v }) })); };
+    vals.onFCode = e => { const v = e.target.value; this.setState(s => ({ filterDraft: Object.assign({}, s.filterDraft, { code: v }) })); };
+    vals.applyFilter = () => {
+      const f = fd.colId === '@js'
+        ? { id: this.uid(), kind: 'js', code: fd.code }
+        : { id: this.uid(), kind: 'col', colId: fd.colId, op: fd.op, value: fd.value };
+      if (f.kind === 'js' && !f.code.trim()) { this.setState({ pop: null }); return; }
+      this.updateView(v => ({ filters: v.filters.concat([f]) }));
+      this.setState({ pop: null, filterDraft: null });
+    };
+
+    vals.viewTabs = a.views.map(v => ({
+      key: v.id, name: v.name,
+      meta: v.columns.length + 'c' + (v.filters.length ? ' · ' + v.filters.length + 'f' : ''),
+      renaming: st.renamingId === v.id, notRenaming: st.renamingId !== v.id,
+      bg: v.id === a.viewId ? 'oklch(0.995 0.003 80)' : 'transparent',
+      fg: v.id === a.viewId ? 'oklch(0.29 0.012 60)' : 'oklch(0.55 0.012 65)',
+      bc: v.id === a.viewId ? 'oklch(0.885 0.008 75)' : 'transparent',
+      fw: v.id === a.viewId ? '600' : '400',
+      onSelect: () => this.updateActive({ viewId: v.id }),
+      onRename: () => this.setState({ renamingId: v.id, renameDraft: v.name }),
+      onDup: e => {
+        e.stopPropagation();
+        const c = { id: this.uid(), name: v.name + ' copy', columns: v.columns.map(x => Object.assign({}, x)), filters: v.filters.map(x => Object.assign({}, x)), sort: v.sort };
+        this.updateActive(w => ({ views: w.views.concat([c]), viewId: c.id }));
+      },
+      onClose: e => {
+        e.stopPropagation();
+        this.updateActive(w => {
+          if (w.views.length <= 1) return {};
+          const left = w.views.filter(x => x.id !== v.id);
+          return { views: left, viewId: w.viewId === v.id ? left[0].id : w.viewId };
+        });
+      }
+    }));
+    vals.addView = () => {
+      const c = { id: this.uid(), name: 'Table ' + (a.views.length + 1), columns: [], filters: [], sort: null };
+      this.updateActive(w => ({ views: w.views.concat([c]), viewId: c.id }));
+    };
+
+    return vals;
+  }
+}
+</script>
+</body>
+</html>
