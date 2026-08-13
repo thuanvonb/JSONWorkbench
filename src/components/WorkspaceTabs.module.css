@@ -92,6 +92,22 @@
   color: var(--danger-fg);
 }
 
+.tools {
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+  margin-left: 6px;
+  border-left: 1px solid var(--line-strong);
+  flex: none;
+}
+
+.profiles {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
 .add {
   display: flex;
   align-items: center;

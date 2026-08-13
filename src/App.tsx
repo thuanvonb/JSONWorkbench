@@ -6,6 +6,9 @@ import { EmptyState } from './components/EmptyState'
 import { FilterPopover } from './components/FilterPopover'
 import { InspectorPanel } from './components/InspectorPanel'
 import { OrganizeModal } from './components/OrganizeModal'
+import { ProfilesModal } from './components/ProfilesModal'
+import { SchemaPanel } from './components/SchemaPanel'
+import { SidePanel } from './components/SidePanel'
 import { SourceModal } from './components/SourceModal'
 import { StatusBar } from './components/StatusBar'
 import { TableTabs } from './components/TableTabs'
@@ -16,8 +19,10 @@ import { demoRows } from './lib/demoData'
 import { downloadText } from './lib/download'
 import { createId } from './lib/id'
 import { describeInspect } from './lib/inspect'
-import { rowCountLabel, workspaceSummary } from './lib/labels'
+import { currentSetupLabel, rowCountLabel, workspaceSummary } from './lib/labels'
 import { parseRecords, sameShape } from './lib/parse'
+import type { Profile } from './lib/profiles'
+import { profileViews, shapeKey } from './lib/profiles'
 import { collectPaths } from './lib/path'
 import {
   COLUMN_POPOVER_SIZE,
@@ -26,8 +31,17 @@ import {
   anchorPopover,
 } from './lib/popover'
 import { computeAggregates, selectRows } from './lib/rows'
+import { useProfiles } from './state/useProfiles'
 import { useWorkbench } from './state/useWorkbench'
-import type { ColumnDraft, FilterDraft, PopoverState, RenameController, RenameTarget } from './types/ui'
+import type {
+  ColumnDraft,
+  FilterDraft,
+  PanelTab,
+  PopoverState,
+  RenameController,
+  RenameTarget,
+  SchemaViewState,
+} from './types/ui'
 import { JS_FILTER_OPTION } from './types/ui'
 import type { Column, Inspect, Row } from './types/workbench'
 import styles from './App.module.css'
@@ -36,12 +50,16 @@ const FOOTER_HINT = 'click a cell for its raw value · click # for the whole rec
 
 export default function App() {
   const { workspaces, workspace, view, display, setDisplay, dispatch } = useWorkbench()
+  const profiles = useProfiles()
 
   const [search, setSearch] = useState('')
   const [sourceOpen, setSourceOpen] = useState(false)
   const [organizeOpen, setOrganizeOpen] = useState(false)
+  const [profilesOpen, setProfilesOpen] = useState(false)
   const [parseError, setParseError] = useState('')
   const [inspect, setInspect] = useState<Inspect | null>(null)
+  const [panel, setPanel] = useState<PanelTab | null>(null)
+  const [schemaView, setSchemaView] = useState<SchemaViewState>({ open: {}, optionalOnly: false })
   const [popover, setPopover] = useState<PopoverState | null>(null)
   const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null)
 
@@ -213,15 +231,34 @@ export default function App() {
     setPopover(null)
   }
 
-  const toggleRowInspect = (index: number) =>
-    setInspect((current) => (current?.kind === 'row' && current.i === index ? null : { kind: 'row', i: index }))
+  // Selecting a value always brings the Record tab forward; clicking the same
+  // value again clears it, leaving the tab open on its hint.
+  const toggleRowInspect = (index: number) => {
+    const same = inspect?.kind === 'row' && inspect.i === index && panel === 'record'
+    setPanel('record')
+    setInspect(same ? null : { kind: 'row', i: index })
+  }
 
-  const toggleCellInspect = (index: number, colId: string) =>
-    setInspect((current) =>
-      current?.kind === 'cell' && current.i === index && current.colId === colId
-        ? null
-        : { kind: 'cell', i: index, colId },
-    )
+  const toggleCellInspect = (index: number, colId: string) => {
+    const same =
+      inspect?.kind === 'cell' && inspect.i === index && inspect.colId === colId && panel === 'record'
+    setPanel('record')
+    setInspect(same ? null : { kind: 'cell', i: index, colId })
+  }
+
+  const closePanel = () => {
+    setPanel(null)
+    setInspect(null)
+  }
+
+  const patchSchemaView = (patch: Partial<SchemaViewState>) =>
+    setSchemaView((current) => ({ ...current, ...patch }))
+
+  const loadProfile = (profile: Profile) => {
+    dispatch({ type: 'views/replace', views: profileViews(profile) })
+    setProfilesOpen(false)
+    closePanel()
+  }
 
   return (
     <div className={styles.app}>
@@ -229,9 +266,11 @@ export default function App() {
         workspaces={workspaces}
         activeId={workspace.id}
         rename={rename}
+        profileCount={profiles.profiles.length}
         onSelect={selectWorkspace}
         onClose={closeWorkspace}
         onAdd={addWorkspace}
+        onOpenProfiles={() => setProfilesOpen(true)}
       />
 
       <Toolbar
@@ -242,6 +281,7 @@ export default function App() {
         onToggleSource={() => setSourceOpen((open) => !open)}
         onRemoveFilter={(id) => dispatch({ type: 'filter/remove', id })}
         onOpenFilterMenu={openFilterMenu}
+        onOpenSchema={() => setPanel((current) => (current === 'schema' ? null : 'schema'))}
         onOpenOrganize={() => setOrganizeOpen(true)}
         onAddColumn={openAddColumn}
         onSearchChange={setSearch}
@@ -277,8 +317,14 @@ export default function App() {
             />
           )}
         </div>
-        {inspectDetail ? (
-          <InspectorPanel detail={inspectDetail} onClose={() => setInspect(null)} />
+        {panel ? (
+          <SidePanel tab={panel} onTab={setPanel} onClose={closePanel}>
+            {panel === 'record' ? (
+              <InspectorPanel detail={inspectDetail} />
+            ) : (
+              <SchemaPanel rows={workspace.rows} state={schemaView} onChange={patchSchemaView} />
+            )}
+          </SidePanel>
         ) : null}
       </div>
 
@@ -309,6 +355,20 @@ export default function App() {
             setSourceOpen(false)
             setParseError('')
           }}
+        />
+      ) : null}
+
+      {profilesOpen ? (
+        <ProfilesModal
+          profiles={profiles.profiles}
+          defaultName={workspace.name}
+          shape={shapeKey(workspace.rows)}
+          setup={currentSetupLabel(workspace, view)}
+          onSave={(name) => profiles.save(name, workspace)}
+          onUpdate={(id) => profiles.update(id, workspace)}
+          onDelete={profiles.remove}
+          onLoad={loadProfile}
+          onClose={() => setProfilesOpen(false)}
         />
       ) : null}
 

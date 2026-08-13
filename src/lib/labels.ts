@@ -1,7 +1,39 @@
+import type { TableView, Workspace } from '../types/workbench'
+import type { Profile } from './profiles'
+import type { SchemaCounts } from './schema'
+
 /** Toolbar summary: what the current workspace holds. */
 export function workspaceSummary(recordCount: number, columnCount: number, pathCount: number): string {
   if (recordCount === 0) return 'no data yet'
   return `${recordCount} records · ${columnCount} columns · ${pathCount} paths`
+}
+
+/** Schema panel header: how much shape was inferred from the records. */
+export function schemaSummary(counts: SchemaCounts, recordCount: number): string {
+  if (recordCount === 0) return 'no data'
+  return `${counts.total} keys · ${counts.optional} optional · ${recordCount} records`
+}
+
+/** Profiles list subtitle: what one saved setup holds. */
+export function profileMeta(profile: Profile): string {
+  const columns = profile.views.reduce((n, v) => n + v.columns.length, 0)
+  const filters = profile.views.reduce((n, v) => n + v.filters.length, 0)
+  return `${tableCount(profile.views.length)} · ${columns} columns · ${filters} filters · ${savedDate(profile.savedAt)}`
+}
+
+/** What saving right now would capture. */
+export function currentSetupLabel(workspace: Workspace, view: TableView): string {
+  const sorted = view.sort ? ' · sorted' : ''
+  return `current: ${tableCount(workspace.views.length)} · ${view.columns.length} columns · ${view.filters.length} filters${sorted}`
+}
+
+function tableCount(count: number): string {
+  return count === 1 ? '1 table' : `${count} tables`
+}
+
+function savedDate(iso: string): string {
+  const date = new Date(iso)
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString()
 }
 
 /** Status bar row count, including the render cap when it bites. */

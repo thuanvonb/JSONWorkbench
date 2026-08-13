@@ -12,6 +12,7 @@ interface ToolbarProps {
   onToggleSource: () => void
   onRemoveFilter: (id: string) => void
   onOpenFilterMenu: (anchor: DOMRect) => void
+  onOpenSchema: () => void
   onOpenOrganize: () => void
   onAddColumn: (anchor: DOMRect) => void
   onSearchChange: (value: string) => void
@@ -26,6 +27,7 @@ export function Toolbar({
   onToggleSource,
   onRemoveFilter,
   onOpenFilterMenu,
+  onOpenSchema,
   onOpenOrganize,
   onAddColumn,
   onSearchChange,
@@ -58,6 +60,14 @@ export function Toolbar({
           + filter
         </button>
       </div>
+      <button
+        type="button"
+        className={`wb-btn wb-btn-sm ${styles.action}`}
+        title="Schema inferred from the input"
+        onClick={onOpenSchema}
+      >
+        Schema
+      </button>
       <button type="button" className={`wb-btn wb-btn-sm ${styles.action}`} onClick={onOpenOrganize}>
         Organize
       </button>

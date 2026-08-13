@@ -1,0 +1,115 @@
+.save {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line-faint);
+  background: var(--surface-sunken);
+}
+
+.field {
+  flex: 1;
+  min-width: 0;
+}
+
+.setup {
+  flex: none;
+  padding: 7px 16px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-faint);
+  border-bottom: 1px solid var(--line-faint);
+}
+
+.list {
+  flex: 1;
+  overflow: auto;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px 9px 16px;
+  border-bottom: 1px solid var(--line-faint);
+}
+
+.labels {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.name {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fits {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--acc-bg-tag);
+  color: var(--acc-fg);
+}
+
+.meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.actions {
+  display: flex;
+  gap: 5px;
+  flex: none;
+}
+
+.delete {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--fg-faint);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.delete:hover {
+  border-color: var(--danger-line);
+  color: var(--danger);
+}
+
+.empty {
+  padding: 30px 24px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--fg-faint);
+}
+
+.hint {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-faint);
+}

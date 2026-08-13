@@ -2,8 +2,11 @@ import type { DisplaySettings, TableView, Workspace } from '../types/workbench'
 import { DEFAULT_DISPLAY } from '../types/workbench'
 import { createView } from './factories'
 import { createId } from './id'
+import type { Profile } from './profiles'
 
 const STORAGE_KEY = 'json-workbench.v1'
+/** Profiles are reusable across workspaces, so they live outside the document. */
+const PROFILES_KEY = 'json-workbench.profiles.v1'
 
 export interface PersistedState {
   activeId: string | null
@@ -50,6 +53,23 @@ export function savePersistedState(state: PersistedState): void {
     )
   } catch {
     // Storage full or unavailable (private mode): the session still works.
+  }
+}
+
+export function loadProfiles(): Profile[] {
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(PROFILES_KEY) ?? 'null')
+    return Array.isArray(parsed) ? (parsed as Profile[]) : []
+  } catch {
+    return []
+  }
+}
+
+export function saveProfiles(profiles: Profile[]): void {
+  try {
+    window.localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles))
+  } catch {
+    // Storage full or unavailable: the profiles just do not outlive the tab.
   }
 }
 

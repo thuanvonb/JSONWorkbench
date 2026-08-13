@@ -46,6 +46,12 @@ a:hover { color:oklch(0.48 0.17 259); }
       </sc-for>
       <div onClick="{{ addTab }}" title="New workspace" style="display:flex; align-items:center; justify-content:center; width:26px; height:30px; align-self:flex-end; cursor:pointer; font-size:16px; color:oklch(0.58 0.012 65); border-radius:6px 6px 0 0;" style-hover="background:oklch(0.90 0.008 78); color:oklch(0.29 0.012 60);">+</div>
     </div>
+    <div style="display:flex; align-items:center; padding-left:10px; margin-left:6px; border-left:1px solid oklch(0.87 0.009 75); flex:none;">
+      <button onClick="{{ openProfiles }}" title="Save or load a table configuration" style="display:flex; align-items:center; gap:6px; padding:4px 10px; font-size:11.5px; border:1px solid oklch(0.885 0.008 75); border-radius:5px; background:oklch(0.995 0.003 80); color:oklch(0.45 0.012 60); cursor:pointer; white-space:nowrap;" style-hover="border-color:oklch(0.78 0.012 75);">
+        <span>Profiles</span>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:oklch(0.66 0.012 65);">{{ profileCount }}</span>
+      </button>
+    </div>
   </div>
 
   <sc-if value="{{ sourceOpen }}" hint-placeholder-val="{{ false }}">
@@ -85,6 +91,7 @@ a:hover { color:oklch(0.48 0.17 259); }
       </sc-for>
       <div onClick="{{ openFilterMenu }}" style="display:flex; align-items:center; gap:5px; padding:3px 9px; border-radius:20px; cursor:pointer; font-size:11px; white-space:nowrap; border:1px dashed oklch(0.82 0.01 75); color:oklch(0.55 0.012 65);" style-hover="border-color:oklch(0.58 0.17 259); color:oklch(0.52 0.15 259);">+ filter</div>
     </div>
+    <button onClick="{{ openSchema }}" title="Schema inferred from the input" style="flex:none; padding:5px 10px; font-size:11.5px; border:1px solid oklch(0.885 0.008 75); border-radius:5px; background:oklch(0.995 0.003 80); color:oklch(0.45 0.012 60); cursor:pointer;" style-hover="border-color:oklch(0.78 0.012 75);">Schema</button>
     <button onClick="{{ openOrganize }}" style="flex:none; padding:5px 10px; font-size:11.5px; border:1px solid oklch(0.885 0.008 75); border-radius:5px; background:oklch(0.995 0.003 80); color:oklch(0.45 0.012 60); cursor:pointer;" style-hover="border-color:oklch(0.78 0.012 75);">Organize</button>
     <button onClick="{{ addColumn }}" style="flex:none; padding:5px 10px; font-size:11.5px; font-weight:500; border:1px solid oklch(0.88 0.055 259); border-radius:5px; background:oklch(0.955 0.03 259); color:oklch(0.45 0.12 259); cursor:pointer;" style-hover="background:oklch(0.925 0.045 259);">+ Column</button>
     <input value="{{ search }}" onChange="{{ onSearch }}" placeholder="search all cells" style="width:170px; flex:none; padding:5px 9px; font-size:11.5px; border:1px solid oklch(0.885 0.008 75); border-radius:5px; outline:none; background:oklch(0.995 0.003 80);" style-focus="border-color:oklch(0.58 0.17 259);" />
@@ -137,15 +144,63 @@ a:hover { color:oklch(0.48 0.17 259); }
       </sc-if>
     </div>
 
-    <sc-if value="{{ inspecting }}" hint-placeholder-val="{{ false }}">
-      <div style="width:380px; flex:none; border-left:1px solid oklch(0.885 0.008 75); background:oklch(0.985 0.004 80); display:flex; flex-direction:column;">
-        <div style="flex:none; display:flex; align-items:center; gap:8px; padding:0 10px 0 14px; height:34px; border-bottom:1px solid oklch(0.9 0.008 78);">
-          <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:oklch(0.5 0.012 62);">{{ inspectTitle }}</span>
-          <span style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:oklch(0.7 0.012 65);">{{ inspectKind }}</span>
-          <span onClick="{{ copyInspect }}" style="margin-left:auto; cursor:pointer; padding:2px 8px; border:1px solid oklch(0.89 0.008 78); border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:10px; color:oklch(0.5 0.012 62); background:oklch(0.995 0.003 80);" style-hover="border-color:oklch(0.58 0.17 259); color:oklch(0.45 0.14 259);">{{ copyLabel }}</span>
-          <span onClick="{{ closeInspect }}" style="flex:none; cursor:pointer; width:20px; height:20px; display:flex; align-items:center; justify-content:center; border-radius:4px; font-size:15px; color:oklch(0.6 0.012 65);" style-hover="background:oklch(0.91 0.008 78);">×</span>
+    <sc-if value="{{ panelOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="width:380px; flex:none; border-left:1px solid oklch(0.885 0.008 75); background:oklch(0.985 0.004 80); display:flex; flex-direction:column; min-height:0;">
+        <div style="flex:none; display:flex; align-items:stretch; gap:2px; padding:0 8px 0 10px; height:34px; border-bottom:1px solid oklch(0.9 0.008 78);">
+          <div onClick="{{ goRecord }}" style="display:flex; align-items:center; padding:0 9px; cursor:pointer; font-size:11.5px; border-bottom:2px solid {{ recordUnderline }}; color:{{ recordFg }}; font-weight:{{ recordFw }};">Record</div>
+          <div onClick="{{ goSchema }}" style="display:flex; align-items:center; padding:0 9px; cursor:pointer; font-size:11.5px; border-bottom:2px solid {{ schemaUnderline }}; color:{{ schemaFg }}; font-weight:{{ schemaFw }};">Schema</div>
+          <span onClick="{{ closePanel }}" style="margin-left:auto; align-self:center; flex:none; cursor:pointer; width:20px; height:20px; display:flex; align-items:center; justify-content:center; border-radius:4px; font-size:15px; color:oklch(0.6 0.012 65);" style-hover="background:oklch(0.91 0.008 78);">×</span>
         </div>
-        <pre style="flex:1; margin:0; overflow:auto; padding:12px 14px; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.65; color:oklch(0.35 0.012 60); white-space:pre-wrap; word-break:break-word;">{{ inspectJson }}</pre>
+
+        <sc-if value="{{ recordTab }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1; min-height:0; display:flex; flex-direction:column;">
+            <sc-if value="{{ inspecting }}" hint-placeholder-val="{{ true }}">
+              <div style="flex:1; min-height:0; display:flex; flex-direction:column;">
+                <div style="flex:none; display:flex; align-items:center; gap:8px; padding:0 10px 0 14px; height:30px; border-bottom:1px solid oklch(0.94 0.006 78); background:oklch(0.975 0.005 80);">
+                  <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:oklch(0.5 0.012 62);">{{ inspectTitle }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:oklch(0.7 0.012 65);">{{ inspectKind }}</span>
+                  <span onClick="{{ copyInspect }}" style="margin-left:auto; cursor:pointer; padding:2px 8px; border:1px solid oklch(0.89 0.008 78); border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:10px; color:oklch(0.5 0.012 62); background:oklch(0.995 0.003 80);" style-hover="border-color:oklch(0.58 0.17 259); color:oklch(0.45 0.14 259);">{{ copyLabel }}</span>
+                </div>
+                <pre style="flex:1; margin:0; overflow:auto; padding:12px 14px; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.65; color:oklch(0.35 0.012 60); white-space:pre-wrap; word-break:break-word;">{{ inspectJson }}</pre>
+              </div>
+            </sc-if>
+            <sc-if value="{{ notInspecting }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:24px; text-align:center; font-size:11.5px; line-height:1.6; color:oklch(0.66 0.012 65);">Click a row number for the whole record, or a cell for its raw value.</div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ schemaTab }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1; min-height:0; display:flex; flex-direction:column;">
+            <div style="flex:none; display:flex; align-items:center; gap:8px; padding:0 10px 0 14px; height:30px; border-bottom:1px solid oklch(0.94 0.006 78); background:oklch(0.975 0.005 80);">
+              <span style="flex:1; min-width:0; font-family:'JetBrains Mono',monospace; font-size:9.5px; color:oklch(0.68 0.012 65); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ schemaMeta }}</span>
+              <div onClick="{{ toggleOptionalOnly }}" title="Keys that appear on some records but not all" style="flex:none; display:flex; align-items:center; gap:4px; cursor:pointer; padding:2px 7px; border-radius:4px; border:1px solid {{ optBc }}; background:{{ optBg }}; color:{{ optFg }}; font-size:10.5px; white-space:nowrap;">
+                <span style="flex:none; width:7px; font-family:'JetBrains Mono',monospace; font-size:10px;">{{ optMark }}</span>
+                <span>optional</span>
+              </div>
+              <span onClick="{{ toggleSchemaExpand }}" style="flex:none; cursor:pointer; padding:2px 7px; border:1px solid oklch(0.89 0.008 78); border-radius:4px; background:oklch(0.995 0.003 80); font-size:10.5px; color:oklch(0.5 0.012 62); white-space:nowrap;" style-hover="border-color:oklch(0.78 0.012 75);">{{ expandLabel }}</span>
+            </div>
+            <div style="flex:1; min-height:0; overflow:auto; padding:4px 0;">
+              <sc-for list="{{ schemaNodes }}" as="n" hint-placeholder-count="6">
+                <div onClick="{{ n.onCopy }}" title="Click to copy path" style="display:flex; align-items:center; gap:6px; height:24px; padding-right:12px; padding-left:{{ n.indent }}px; cursor:pointer; background:{{ n.bg }};" style-hover="background:oklch(0.955 0.03 259);">
+                  <span onClick="{{ n.onToggle }}" style="flex:none; width:12px; text-align:center; font-size:8px; color:oklch(0.62 0.012 65);">{{ n.caret }}</span>
+                  <span title="{{ n.path }}" style="font-family:'JetBrains Mono',monospace; font-size:11px; color:{{ n.keyFg }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ n.name }}</span>
+                  <sc-if value="{{ n.optional }}" hint-placeholder-val="{{ false }}">
+                    <span title="{{ n.presence }}" style="flex:none; font-family:'JetBrains Mono',monospace; font-size:8.5px; padding:1px 4px; border-radius:3px; background:oklch(0.955 0.055 75); color:oklch(0.48 0.11 62);">opt</span>
+                  </sc-if>
+                  <sc-if value="{{ n.mixed }}" hint-placeholder-val="{{ false }}">
+                    <span title="More than one type across records" style="flex:none; font-family:'JetBrains Mono',monospace; font-size:8.5px; padding:1px 4px; border-radius:3px; background:oklch(0.94 0.05 25); color:oklch(0.5 0.14 25);">mixed</span>
+                  </sc-if>
+                  <span style="margin-left:auto; flex:none; font-family:'JetBrains Mono',monospace; font-size:10px; color:oklch(0.62 0.012 65); white-space:nowrap;">{{ n.type }}</span>
+                </div>
+              </sc-for>
+              <sc-if value="{{ schemaEmpty }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:26px 20px; text-align:center; font-size:11.5px; line-height:1.6; color:oklch(0.66 0.012 65);">{{ schemaEmptyText }}</div>
+              </sc-if>
+            </div>
+            <div style="flex:none; display:flex; align-items:center; padding:0 14px; height:26px; border-top:1px solid oklch(0.94 0.006 78); background:oklch(0.975 0.005 80); font-family:'JetBrains Mono',monospace; font-size:9.5px; color:oklch(0.66 0.012 65);">{{ schemaFoot }}</div>
+          </div>
+        </sc-if>
       </div>
     </sc-if>
   </div>
@@ -175,6 +230,56 @@ a:hover { color:oklch(0.48 0.17 259); }
     </sc-for>
     <span style="margin-left:auto; color:oklch(0.66 0.012 65);">{{ footHint }}</span>
   </div>
+
+  <sc-if value="{{ profilesOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeProfiles }}" style="position:fixed; inset:0; z-index:58; background:oklch(0.4 0.01 60 / 0.28); display:flex; align-items:center; justify-content:center; padding:40px;">
+      <div onClick="{{ stop }}" style="width:min(600px, 100%); max-height:100%; display:flex; flex-direction:column; background:oklch(0.995 0.003 80); border:1px solid oklch(0.85 0.01 75); border-radius:10px; box-shadow:0 24px 60px oklch(0.4 0.02 60 / 0.24); overflow:hidden;">
+        <div style="flex:none; display:flex; align-items:center; gap:10px; padding:0 12px 0 16px; height:42px; border-bottom:1px solid oklch(0.9 0.008 78); background:oklch(0.975 0.005 80);">
+          <span style="font-size:12.5px; font-weight:600;">Profiles</span>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:oklch(0.62 0.012 65);">saved table configurations</span>
+          <span onClick="{{ closeProfiles }}" style="margin-left:auto; cursor:pointer; width:24px; height:24px; display:flex; align-items:center; justify-content:center; border-radius:5px; font-size:17px; color:oklch(0.58 0.012 65);" style-hover="background:oklch(0.91 0.008 78); color:oklch(0.29 0.012 60);">×</span>
+        </div>
+
+        <div style="flex:none; display:flex; align-items:flex-end; gap:8px; padding:12px 16px; border-bottom:1px solid oklch(0.93 0.007 78); background:oklch(0.985 0.004 80);">
+          <div style="display:flex; flex-direction:column; gap:4px; flex:1; min-width:0;">
+            <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:oklch(0.62 0.012 65);">Save current setup</label>
+            <input value="{{ profileDraft }}" onChange="{{ onProfileDraft }}" onKeyDown="{{ profileKey }}" placeholder="profile name" style="padding:6px 8px; font-size:12px; border:1px solid oklch(0.885 0.008 75); border-radius:5px; outline:none; background:oklch(0.995 0.003 80);" style-focus="border-color:oklch(0.58 0.17 259);" />
+          </div>
+          <button onClick="{{ saveProfile }}" style="flex:none; padding:7px 14px; font-size:12px; font-weight:600; border:none; border-radius:6px; background:oklch(0.58 0.17 259); color:oklch(0.99 0.012 259); cursor:pointer;" style-hover="background:oklch(0.51 0.18 259);">{{ saveLabel }}</button>
+        </div>
+        <div style="flex:none; padding:7px 16px; font-family:'JetBrains Mono',monospace; font-size:10px; color:oklch(0.66 0.012 65); border-bottom:1px solid oklch(0.94 0.006 78);">{{ currentSetup }}</div>
+
+        <div style="flex:1; overflow:auto;">
+          <sc-for list="{{ profiles }}" as="p" hint-placeholder-count="2">
+            <div style="display:flex; align-items:center; gap:10px; padding:9px 12px 9px 16px; border-bottom:1px solid oklch(0.96 0.004 78);">
+              <div style="display:flex; flex-direction:column; gap:2px; min-width:0; flex:1;">
+                <div style="display:flex; align-items:center; gap:7px; min-width:0;">
+                  <span style="font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ p.name }}</span>
+                  <sc-if value="{{ p.fits }}" hint-placeholder-val="{{ false }}">
+                    <span title="Saved from data with the same top-level keys" style="flex:none; font-family:'JetBrains Mono',monospace; font-size:8.5px; padding:1px 4px; border-radius:3px; background:oklch(0.94 0.035 259); color:oklch(0.45 0.13 259);">fits this data</span>
+                  </sc-if>
+                </div>
+                <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:oklch(0.66 0.012 65); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ p.meta }}</span>
+              </div>
+              <div style="display:flex; gap:5px; flex:none;">
+                <button onClick="{{ p.onLoad }}" style="padding:5px 11px; font-size:11.5px; font-weight:500; border:1px solid oklch(0.88 0.055 259); border-radius:5px; background:oklch(0.955 0.03 259); color:oklch(0.45 0.12 259); cursor:pointer;" style-hover="background:oklch(0.925 0.045 259);">Load</button>
+                <button onClick="{{ p.onOverwrite }}" title="Replace with the current setup" style="padding:5px 10px; font-size:11.5px; border:1px solid oklch(0.885 0.008 75); border-radius:5px; background:oklch(0.995 0.003 80); color:oklch(0.45 0.012 60); cursor:pointer;" style-hover="border-color:oklch(0.78 0.012 75);">Update</button>
+                <button onClick="{{ p.onDelete }}" title="Delete profile" style="width:26px; padding:0; height:26px; font-size:14px; border:1px solid oklch(0.885 0.008 75); border-radius:5px; background:oklch(0.995 0.003 80); color:oklch(0.6 0.012 65); cursor:pointer;" style-hover="border-color:oklch(0.8 0.06 25); color:oklch(0.5 0.15 25);">×</button>
+              </div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ noProfiles }}" hint-placeholder-val="{{ true }}">
+            <div style="padding:30px 24px; text-align:center; font-size:12px; line-height:1.6; color:oklch(0.66 0.012 65);">No profiles yet. Save the current columns, filters and sort to reuse them on data of the same shape.</div>
+          </sc-if>
+        </div>
+
+        <div style="flex:none; display:flex; align-items:center; gap:10px; padding:10px 12px; border-top:1px solid oklch(0.9 0.008 78); background:oklch(0.975 0.005 80);">
+          <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:oklch(0.66 0.012 65);">{{ profileHint }}</span>
+          <button onClick="{{ closeProfiles }}" style="margin-left:auto; padding:7px 14px; font-size:12px; border:1px solid oklch(0.885 0.008 75); border-radius:6px; background:oklch(0.995 0.003 80); color:oklch(0.45 0.012 60); cursor:pointer;" style-hover="border-color:oklch(0.78 0.012 75);">Close</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
 
   <sc-if value="{{ organizeOpen }}" hint-placeholder-val="{{ false }}">
     <div onClick="{{ closeOrganize }}" style="position:fixed; inset:0; z-index:55; background:oklch(0.4 0.01 60 / 0.28); display:flex; align-items:center; justify-content:center; padding:40px;">
@@ -294,7 +399,14 @@ class Component extends DCLogic {
     inspect: null,
     renamingId: null,
     renameDraft: '',
-    error: ''
+    error: '',
+    panel: null,
+    profilesOpen: false,
+    profiles: [],
+    profileDraft: '',
+    schemaOpen: {},
+    optionalOnly: false,
+    copiedPath: ''
   };
 
   // ---------- lifecycle ----------
@@ -310,6 +422,66 @@ class Component extends DCLogic {
     }
     this.rawRef = React.createRef();
     this._compiled = {};
+    let profs = [];
+    try { profs = JSON.parse(localStorage.getItem('json-workbench.profiles.v1') || '[]') || []; } catch (e) { profs = []; }
+    if (profs.length) this.setState({ profiles: profs });
+  }
+
+  persistProfiles(list) {
+    try { localStorage.setItem('json-workbench.profiles.v1', JSON.stringify(list)); } catch (e) { /* quota */ }
+  }
+
+  shapeKey(rows) {
+    const r = rows && rows.length ? rows[0] : null;
+    if (!r || typeof r !== 'object' || Array.isArray(r)) return '';
+    return Object.keys(r).sort().join(',');
+  }
+
+  snapshotViews(w) {
+    return w.views.map(v => ({
+      name: v.name,
+      columns: v.columns.map(c => ({ name: c.name, kind: c.kind, path: c.path, code: c.code })),
+      filters: v.filters.map(f => Object.assign({}, f)),
+      sortColName: v.sort ? (v.columns.find(c => c.id === v.sort.colId) || {}).name : null,
+      sortDir: v.sort ? v.sort.dir : null
+    }));
+  }
+
+  hydrateViews(snap) {
+    return snap.map(v => {
+      const columns = v.columns.map(c => Object.assign({ id: this.uid() }, c));
+      const byName = {};
+      columns.forEach(c => { byName[c.name] = c.id; });
+      const filters = (v.filters || []).map(f => {
+        const nf = Object.assign({ id: this.uid() }, f);
+        if (nf.kind !== 'js') nf.colId = byName[f.colName] !== undefined ? byName[f.colName] : (columns[0] ? columns[0].id : '');
+        return nf;
+      });
+      const sortId = v.sortColName ? byName[v.sortColName] : null;
+      return { id: this.uid(), name: v.name || 'Table 1', columns: columns, filters: filters, sort: sortId ? { colId: sortId, dir: v.sortDir || 'asc' } : null };
+    });
+  }
+
+  buildProfile(name) {
+    const w = this.active();
+    if (!w) return null;
+    const views = this.snapshotViews(w).map((v, i) => {
+      const src = w.views[i];
+      return Object.assign({}, v, {
+        filters: v.filters.map(f => {
+          const nf = Object.assign({}, f);
+          delete nf.id;
+          if (nf.kind !== 'js') { const c = src.columns.find(x => x.id === f.colId); nf.colName = c ? c.name : null; delete nf.colId; }
+          return nf;
+        })
+      });
+    });
+    return {
+      id: this.uid(), name: name,
+      savedAt: new Date().toISOString(),
+      shape: this.shapeKey(w.rows),
+      views: views
+    };
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -425,6 +597,97 @@ class Component extends DCLogic {
     };
     rows.slice(0, 40).forEach(r => { if (r && typeof r === 'object' && !Array.isArray(r)) walk(r, '', 1); });
     return seen;
+  }
+
+  // ---------- schema ----------
+  buildSchema(rows) {
+    const mk = () => ({ children: new Map(), observed: 0 });
+    const root = mk();
+    const visitObj = (cont, obj) => {
+      cont.observed++;
+      Object.keys(obj).forEach(k => {
+        let n = cont.children.get(k);
+        if (!n) { n = { key: k, types: {}, itemTypes: null, present: 0, child: mk() }; cont.children.set(k, n); }
+        n.present++;
+        const v = obj[k];
+        const t = this.typeOf(v);
+        n.types[t] = (n.types[t] || 0) + 1;
+        if (v && typeof v === 'object' && !Array.isArray(v)) visitObj(n.child, v);
+        else if (Array.isArray(v)) v.slice(0, 25).forEach(it => {
+          if (it && typeof it === 'object' && !Array.isArray(it)) visitObj(n.child, it);
+          else { n.itemTypes = n.itemTypes || {}; const t2 = this.typeOf(it); n.itemTypes[t2] = (n.itemTypes[t2] || 0) + 1; }
+        });
+      });
+    };
+    rows.forEach(r => { if (r && typeof r === 'object' && !Array.isArray(r)) visitObj(root, r); });
+    return root;
+  }
+
+  typeLabel(n) {
+    const ks = Object.keys(n.types).filter(t => t !== 'null' && t !== '—');
+    const hasNull = !!n.types['null'];
+    if (!ks.length) return 'null';
+    ks.sort((a, b) => n.types[b] - n.types[a]);
+    let base = ks.map(t => {
+      if (t !== 'array') return t;
+      const inner = [];
+      if (n.child.observed) inner.push('object');
+      if (n.itemTypes) Object.keys(n.itemTypes).forEach(x => { if (inner.indexOf(x) < 0) inner.push(x); });
+      return inner.length ? 'array<' + inner.join('|') + '>' : 'array';
+    }).join(' | ');
+    if (hasNull) base += ' | null';
+    return base;
+  }
+
+  mixedType(n) { return Object.keys(n.types).filter(t => t !== 'null' && t !== '—').length > 1; }
+
+  hasOptionalDeep(cont) {
+    let found = false;
+    cont.children.forEach(n => {
+      if (found) return;
+      if (n.present < cont.observed || this.hasOptionalDeep(n.child)) found = true;
+    });
+    return found;
+  }
+
+  countSchema(cont) {
+    let total = 0, optional = 0;
+    cont.children.forEach(n => {
+      total++;
+      if (n.present < cont.observed) optional++;
+      const sub = this.countSchema(n.child);
+      total += sub.total; optional += sub.optional;
+    });
+    return { total: total, optional: optional };
+  }
+
+  flattenSchema(root, openMap, optionalOnly) {
+    const out = [];
+    const walk = (cont, prefix, depth) => {
+      cont.children.forEach(n => {
+        const path = prefix ? prefix + '.' + n.key : n.key;
+        const optional = n.present < cont.observed;
+        if (optionalOnly && !optional && !this.hasOptionalDeep(n.child)) return;
+        const kids = n.child.children.size;
+        const open = !!openMap[path];
+        out.push({
+          path: path, key: n.key, depth: depth, optional: optional,
+          present: n.present, of: cont.observed,
+          mixed: this.mixedType(n), type: this.typeLabel(n), kids: kids, open: open
+        });
+        if (kids && open) walk(n.child, path, depth + 1);
+      });
+    };
+    walk(root, '', 0);
+    return out;
+  }
+
+  allSchemaPaths(cont, prefix, acc) {
+    cont.children.forEach(n => {
+      const path = prefix ? prefix + '.' + n.key : n.key;
+      if (n.child.children.size) { acc.push(path); this.allSchemaPaths(n.child, path, acc); }
+    });
+    return acc;
   }
 
   compile(code) {
@@ -674,7 +937,48 @@ class Component extends DCLogic {
       popIsFilter: !!st.pop && st.pop.type === 'filter',
       ops: this.opList(),
       sourceHint: 'Arrays, single objects and NDJSON all work. Columns are inferred on parse.',
-      footHint: 'click a cell for its raw value · click # for the whole record'
+      footHint: 'click a cell for its raw value · click # for the whole record',
+      panelOpen: st.panel !== null,
+      recordTab: st.panel === 'record',
+      schemaTab: st.panel === 'schema',
+      recordUnderline: st.panel === 'record' ? 'oklch(0.58 0.17 259)' : 'transparent',
+      recordFg: st.panel === 'record' ? 'oklch(0.29 0.012 60)' : 'oklch(0.58 0.012 65)',
+      recordFw: st.panel === 'record' ? '600' : '400',
+      schemaUnderline: st.panel === 'schema' ? 'oklch(0.58 0.17 259)' : 'transparent',
+      schemaFg: st.panel === 'schema' ? 'oklch(0.29 0.012 60)' : 'oklch(0.58 0.012 65)',
+      schemaFw: st.panel === 'schema' ? '600' : '400',
+      goRecord: () => this.setState({ panel: 'record' }),
+      goSchema: () => this.setState({ panel: 'schema' }),
+      openSchema: () => this.setState(s => ({ panel: s.panel === 'schema' ? null : 'schema' })),
+      closePanel: () => this.setState({ panel: null, inspect: null }),
+      inspecting: false,
+      notInspecting: true,
+      optionalOnly: st.optionalOnly,
+      optMark: st.optionalOnly ? '✓' : '',
+      optBg: st.optionalOnly ? 'oklch(0.955 0.03 259)' : 'oklch(0.995 0.003 80)',
+      optBc: st.optionalOnly ? 'oklch(0.88 0.055 259)' : 'oklch(0.89 0.008 78)',
+      optFg: st.optionalOnly ? 'oklch(0.45 0.12 259)' : 'oklch(0.5 0.012 62)',
+      toggleOptionalOnly: () => this.setState(s => ({ optionalOnly: !s.optionalOnly })),
+      schemaNodes: [],
+      schemaEmpty: true,
+      schemaEmptyText: 'No data parsed yet.',
+      schemaMeta: '',
+      schemaFoot: 'click a row to copy its path',
+      expandLabel: 'expand all',
+      toggleSchemaExpand: () => {},
+      profilesOpen: !!st.profilesOpen,
+      profiles: [],
+      noProfiles: st.profiles.length === 0,
+      profileCount: st.profiles.length ? String(st.profiles.length) : '',
+      profileDraft: st.profileDraft,
+      onProfileDraft: e => this.setState({ profileDraft: e.target.value }),
+      openProfiles: () => this.setState({ profilesOpen: true }),
+      closeProfiles: () => this.setState({ profilesOpen: false }),
+      saveProfile: () => {},
+      profileKey: () => {},
+      saveLabel: 'Save',
+      currentSetup: 'no table to save yet',
+      profileHint: 'profiles store columns, filters and sort — not the data'
     };
 
     if (!a || !vw) return Object.assign(vals, { columns: [], rows: [], hasRows: false, noRows: true, summary: 'no workspace', footCount: '', filterPills: [], aggregates: [], viewTabs: [] });
@@ -706,11 +1010,11 @@ class Component extends DCLogic {
     vals.rows = shown.map((r, n) => ({
       key: r.i, n: r.i + 1,
       bg: ins && ins.i === r.i ? 'oklch(0.965 0.018 259)' : (zebra && n % 2 === 1 ? 'oklch(0.978 0.004 80)' : 'oklch(0.995 0.003 80)'),
-      onIndex: () => this.setState(s => ({ inspect: s.inspect && s.inspect.kind === 'row' && s.inspect.i === r.i ? null : { kind: 'row', i: r.i } })),
+      onIndex: () => this.setState(s => ({ panel: 'record', inspect: s.inspect && s.inspect.kind === 'row' && s.inspect.i === r.i && s.panel === 'record' ? null : { kind: 'row', i: r.i } })),
       cells: vw.columns.map(c => Object.assign({
         key: c.id,
         bg: ins && ins.kind === 'cell' && ins.i === r.i && ins.colId === c.id ? 'oklch(0.925 0.045 259)' : 'transparent',
-        onClick: () => this.setState(s => ({ inspect: s.inspect && s.inspect.kind === 'cell' && s.inspect.i === r.i && s.inspect.colId === c.id ? null : { kind: 'cell', i: r.i, colId: c.id } }))
+        onClick: () => this.setState(s => ({ panel: 'record', inspect: s.inspect && s.inspect.kind === 'cell' && s.inspect.i === r.i && s.inspect.colId === c.id && s.panel === 'record' ? null : { kind: 'cell', i: r.i, colId: c.id } }))
       }, this.fmt(this.cellValue(c, r.row, r.i))))
     }));
 
@@ -760,6 +1064,7 @@ class Component extends DCLogic {
         vals.inspectJson = v === undefined ? '' : (typeof v === 'string' ? v : JSON.stringify(v, null, 2));
       }
     } else { vals.inspectTitle = ''; vals.inspectKind = ''; vals.inspectJson = ''; }
+    vals.notInspecting = !vals.inspecting;
     vals.closeInspect = () => this.setState({ inspect: null });
     vals.copyInspect = () => {
       const t = vals.inspectJson;
@@ -770,6 +1075,102 @@ class Component extends DCLogic {
       });
     };
     vals.copyLabel = st.copied ? 'copied' : 'copy';
+
+    const schema = this.buildSchema(a.rows);
+    const counts = this.countSchema(schema);
+    const nodes = this.flattenSchema(schema, st.schemaOpen, st.optionalOnly);
+    vals.schemaNodes = nodes.map(n => ({
+      key: n.path,
+      name: n.key,
+      path: n.path,
+      indent: 10 + n.depth * 14,
+      caret: n.kids ? (n.open ? '▾' : '▸') : '',
+      keyFg: n.kids ? 'oklch(0.32 0.012 60)' : 'oklch(0.42 0.012 60)',
+      bg: st.copiedPath === n.path ? 'oklch(0.925 0.045 259)' : 'transparent',
+      optional: n.optional,
+      mixed: n.mixed,
+      type: n.type,
+      presence: 'present on ' + n.present + ' of ' + n.of,
+      onToggle: e => {
+        if (!n.kids) return;
+        e.stopPropagation();
+        this.setState(s => ({ schemaOpen: Object.assign({}, s.schemaOpen, { [n.path]: !s.schemaOpen[n.path] }) }));
+      },
+      onCopy: () => {
+        if (navigator.clipboard) navigator.clipboard.writeText(n.path);
+        this.setState({ copiedPath: n.path });
+        clearTimeout(this._pathT);
+        this._pathT = setTimeout(() => this.setState({ copiedPath: '' }), 1100);
+      }
+    }));
+    vals.schemaEmpty = nodes.length === 0;
+    vals.schemaEmptyText = a.rows.length
+      ? (st.optionalOnly ? 'Every key appears on every record — no optional keys.' : 'Records have no object keys to describe.')
+      : 'No data parsed yet.';
+    vals.schemaMeta = a.rows.length
+      ? counts.total + ' keys · ' + counts.optional + ' optional · ' + a.rows.length + ' records'
+      : 'no data';
+    vals.schemaFoot = st.copiedPath ? 'copied  ' + st.copiedPath : 'click a row to copy its path · ▸ to expand';
+    const expandable = this.allSchemaPaths(schema, '', []);
+    const allOpen = expandable.length > 0 && expandable.every(p => st.schemaOpen[p]);
+    vals.expandLabel = allOpen ? 'collapse all' : 'expand all';
+    vals.toggleSchemaExpand = () => {
+      if (allOpen) this.setState({ schemaOpen: {} });
+      else { const m = {}; expandable.forEach(p => { m[p] = true; }); this.setState({ schemaOpen: m }); }
+    };
+
+    const shape = this.shapeKey(a.rows);
+    const colTotal = vw.columns.length;
+    vals.currentSetup = 'current: ' + a.views.length + (a.views.length === 1 ? ' table · ' : ' tables · ') + colTotal + ' columns · ' + vw.filters.length + ' filters' + (vw.sort ? ' · sorted' : '');
+    vals.profiles = st.profiles.map(p => {
+      const cols = p.views.reduce((n, v) => n + v.columns.length, 0);
+      const flt = p.views.reduce((n, v) => n + (v.filters ? v.filters.length : 0), 0);
+      let when = '';
+      try { when = new Date(p.savedAt).toLocaleDateString(); } catch (e) { when = ''; }
+      return {
+        key: p.id, name: p.name,
+        fits: !!shape && p.shape === shape,
+        meta: p.views.length + (p.views.length === 1 ? ' table · ' : ' tables · ') + cols + ' columns · ' + flt + ' filters · ' + when,
+        onLoad: () => {
+          const views = this.hydrateViews(p.views);
+          this.updateActive({ views: views, viewId: views[0].id });
+          this.setState({ profilesOpen: false, inspect: null, panel: null });
+        },
+        onOverwrite: () => {
+          const next = this.buildProfile(p.name);
+          if (!next) return;
+          next.id = p.id;
+          const list = st.profiles.map(x => x.id === p.id ? next : x);
+          this.persistProfiles(list);
+          this.setState({ profiles: list });
+        },
+        onDelete: () => {
+          const list = st.profiles.filter(x => x.id !== p.id);
+          this.persistProfiles(list);
+          this.setState({ profiles: list });
+        }
+      };
+    });
+    vals.noProfiles = st.profiles.length === 0;
+    vals.profileCount = st.profiles.length ? String(st.profiles.length) : '';
+    vals.profilesOpen = !!st.profilesOpen;
+    vals.profileDraft = st.profileDraft;
+    vals.openProfiles = () => this.setState(s => ({ profilesOpen: true, profileDraft: s.profileDraft || (a.name || 'Profile') }));
+    vals.closeProfiles = () => this.setState({ profilesOpen: false });
+    vals.onProfileDraft = e => this.setState({ profileDraft: e.target.value });
+    const dupName = st.profiles.find(p => p.name.trim().toLowerCase() === st.profileDraft.trim().toLowerCase());
+    vals.saveLabel = dupName ? 'Replace' : 'Save';
+    vals.profileHint = 'profiles store columns, filters and sort — not the data';
+    vals.saveProfile = () => {
+      const name = (st.profileDraft || '').trim();
+      if (!name) return;
+      const p = this.buildProfile(name);
+      if (!p) return;
+      const list = dupName ? st.profiles.map(x => x.id === dupName.id ? Object.assign(p, { id: dupName.id }) : x) : st.profiles.concat([p]);
+      this.persistProfiles(list);
+      this.setState({ profiles: list });
+    };
+    vals.profileKey = e => { if (e.key === 'Enter') vals.saveProfile(); };
 
     vals.organizeOpen = !!st.organizeOpen;
     vals.openOrganize = () => this.setState({ organizeOpen: true });

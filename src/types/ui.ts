@@ -21,6 +21,15 @@ export interface FilterDraft {
   code: string
 }
 
+/** Which tab the right-hand panel is showing; null closes it. */
+export type PanelTab = 'record' | 'schema'
+
+/** What the schema tree is showing: which branches are open, and the filter. */
+export interface SchemaViewState {
+  open: Record<string, boolean>
+  optionalOnly: boolean
+}
+
 export interface Point {
   x: number
   y: number

@@ -17,6 +17,8 @@ export type WorkbenchAction =
   | { type: 'view/select'; id: string }
   | { type: 'view/duplicate'; id: string }
   | { type: 'view/close'; id: string }
+  /** Swaps every table for the ones rebuilt from a saved profile. */
+  | { type: 'views/replace'; views: TableView[] }
   | { type: 'column/add'; column: Column }
   | { type: 'column/update'; column: Column }
   | { type: 'column/remove'; id: string }
@@ -89,6 +91,12 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
         if (w.views.length <= 1) return {}
         const left = w.views.filter((v) => v.id !== action.id)
         return { views: left, viewId: w.viewId === action.id ? left[0].id : w.viewId }
+      })
+
+    case 'views/replace':
+      return patchActive(state, () => {
+        if (action.views.length === 0) return {}
+        return { views: action.views, viewId: action.views[0].id }
       })
 
     case 'column/add':

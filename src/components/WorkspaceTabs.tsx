@@ -9,18 +9,22 @@ interface WorkspaceTabsProps {
   workspaces: Workspace[]
   activeId: string | null
   rename: RenameController
+  profileCount: number
   onSelect: (id: string) => void
   onClose: (id: string) => void
   onAdd: () => void
+  onOpenProfiles: () => void
 }
 
 export function WorkspaceTabs({
   workspaces,
   activeId,
   rename,
+  profileCount,
   onSelect,
   onClose,
   onAdd,
+  onOpenProfiles,
 }: WorkspaceTabsProps) {
   return (
     <div className={styles.bar}>
@@ -74,6 +78,17 @@ export function WorkspaceTabs({
         })}
         <button type="button" className={styles.add} title="New workspace" aria-label="New workspace" onClick={onAdd}>
           +
+        </button>
+      </div>
+      <div className={styles.tools}>
+        <button
+          type="button"
+          className={`wb-btn wb-btn-sm ${styles.profiles}`}
+          title="Save or load a table configuration"
+          onClick={onOpenProfiles}
+        >
+          <span>Profiles</span>
+          <span className={styles.count}>{profileCount || ''}</span>
         </button>
       </div>
     </div>

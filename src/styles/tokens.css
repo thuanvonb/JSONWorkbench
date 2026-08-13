@@ -70,6 +70,11 @@
   --danger-bg-hover: oklch(0.87 0.02 25);
   --danger-line: oklch(0.88 0.05 25);
 
+  /* Notice (amber), for keys that only some records carry */
+  --warn-bg: oklch(0.955 0.055 75);
+  --warn-fg: oklch(0.48 0.11 62);
+  --danger-bg-tag: oklch(0.94 0.05 25);
+
   --scrim: oklch(0.4 0.01 60 / 0.28);
   --scrim-light: oklch(0.4 0.01 60 / 0.14);
   --shadow-modal: 0 24px 60px oklch(0.4 0.02 60 / 0.24);

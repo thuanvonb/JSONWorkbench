@@ -4,14 +4,15 @@ import type { InspectDetail } from '../lib/inspect'
 import styles from './InspectorPanel.module.css'
 
 interface InspectorPanelProps {
-  detail: InspectDetail
-  onClose: () => void
+  /** Null when nothing is selected, which shows the hint instead. */
+  detail: InspectDetail | null
 }
 
 const COPIED_RESET_MS = 1200
+const HINT = 'Click a row number for the whole record, or a cell for its raw value.'
 
-/** Right-hand panel showing the raw value behind the selected cell or row. */
-export function InspectorPanel({ detail, onClose }: InspectorPanelProps) {
+/** Record tab: the raw value behind the selected cell or row. */
+export function InspectorPanel({ detail }: InspectorPanelProps) {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -19,6 +20,8 @@ export function InspectorPanel({ detail, onClose }: InspectorPanelProps) {
     const timer = window.setTimeout(() => setCopied(false), COPIED_RESET_MS)
     return () => window.clearTimeout(timer)
   }, [copied])
+
+  if (!detail) return <div className={styles.empty}>{HINT}</div>
 
   const copy = async () => {
     if (!navigator.clipboard) return
@@ -31,18 +34,15 @@ export function InspectorPanel({ detail, onClose }: InspectorPanelProps) {
   }
 
   return (
-    <aside className={styles.panel} aria-label="Value inspector">
+    <div className={styles.tab}>
       <div className={styles.header}>
         <span className={styles.title}>{detail.title}</span>
         <span className={styles.kind}>{detail.kind}</span>
         <button type="button" className={styles.copy} onClick={copy}>
           {copied ? 'copied' : 'copy'}
         </button>
-        <button type="button" className={`wb-icon-btn ${styles.close}`} onClick={onClose} aria-label="Close inspector">
-          ×
-        </button>
       </div>
       <pre className={styles.body}>{detail.json}</pre>
-    </aside>
+    </div>
   )
 }
