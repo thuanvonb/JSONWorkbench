@@ -1,11 +1,28 @@
 .panel {
-  width: 430px;
+  position: relative;
   flex: none;
   display: flex;
   flex-direction: column;
   min-height: 0;
   border-left: 1px solid var(--line);
   background: var(--surface-sunken);
+}
+
+/* Straddles the panel's left border, so the whole seam is grabbable. */
+.grip {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  z-index: 5;
+  background: transparent;
+  cursor: col-resize;
+}
+
+.grip:hover,
+.gripActive {
+  background: var(--acc);
 }
 
 .tabs {

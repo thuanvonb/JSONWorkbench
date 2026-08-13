@@ -35,6 +35,7 @@ export const BOOL_OPS: BoolOpOption[] = [
   { id: 'NOR', name: 'NOR' },
   { id: 'XNOR', name: 'XNOR' },
   { id: 'IMPLIES', name: 'IMPLIES' },
+  { id: 'NOT IMPLIES', name: 'NOT IMPLIES' },
 ]
 
 /** Connectives renamed since they were first saved. */

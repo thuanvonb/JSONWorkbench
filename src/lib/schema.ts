@@ -1,4 +1,4 @@
-import type { Row } from '../types/workbench'
+import type { Column, Row } from '../types/workbench'
 import { typeOf } from './path'
 
 /** Array items sampled when describing what an array holds. */
@@ -180,6 +180,11 @@ export function flattenSchema(
 
   walk(root, '', 0)
   return out
+}
+
+/** Paths the table already shows, so the tree can mark those keys as added. */
+export function columnedPaths(columns: Column[]): Set<string> {
+  return new Set(columns.flatMap((c) => (c.kind === 'path' && c.path ? [c.path] : [])))
 }
 
 /** Every path that can be expanded, for the expand-all / collapse-all toggle. */

@@ -60,6 +60,7 @@
   --acc-bg-pill: oklch(0.9 0.03 259);
   --acc-line: oklch(0.88 0.055 259);
   --acc-line-hover: oklch(0.885 0.055 259);
+  --acc-line-strong: oklch(0.78 0.09 259);
   --row-hover: oklch(0.972 0.012 259);
   --row-selected: oklch(0.965 0.018 259);
 
@@ -70,6 +71,9 @@
   --danger-bg: oklch(0.96 0.025 25);
   --danger-bg-hover: oklch(0.87 0.02 25);
   --danger-line: oklch(0.88 0.05 25);
+
+  /* Confirmation (green), for something already done */
+  --ok-fg: oklch(0.62 0.09 150);
 
   /* Notice (amber), for keys that only some records carry */
   --warn-bg: oklch(0.955 0.055 75);

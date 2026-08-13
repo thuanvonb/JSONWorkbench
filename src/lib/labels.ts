@@ -15,6 +15,11 @@ export function schemaSummary(counts: SchemaCounts, recordCount: number): string
   return `${counts.total} keys · ${counts.optional} optional · ${recordCount} records`
 }
 
+/** Schema row's add button: what clicking it would do, or why it is spent. */
+export function addColumnTitle(key: string, added: boolean): string {
+  return added ? 'Already a column' : `Add "${key}" as a column`
+}
+
 /** Filter panel header: how many rows there are, and how many narrow the table. */
 export function filterPanelMeta(total: number, applied: number): string {
   if (total === 0) return 'no filter rows yet'

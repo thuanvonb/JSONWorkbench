@@ -27,7 +27,7 @@ export type FilterOp =
   | 'regex'
 
 /** Boolean connective a compound filter row combines its two operands with. */
-export type BoolOp = 'AND' | 'OR' | 'XOR' | 'NAND' | 'NOR' | 'XNOR' | 'IMPLIES'
+export type BoolOp = 'AND' | 'OR' | 'XOR' | 'NAND' | 'NOR' | 'XNOR' | 'IMPLIES' | 'NOT IMPLIES'
 
 interface FilterRow {
   id: string

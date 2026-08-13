@@ -149,6 +149,37 @@
   white-space: nowrap;
 }
 
+/* Puts this path on the table; a spent tick once it is already a column. */
+.add {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--fg-muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.add:hover {
+  border-color: var(--acc-line-strong);
+  color: var(--acc-fg);
+}
+
+.add:disabled {
+  border-color: transparent;
+  background: none;
+  color: var(--ok-fg);
+  cursor: default;
+}
+
 .empty {
   padding: 26px 20px;
   text-align: center;

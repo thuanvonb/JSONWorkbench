@@ -2,16 +2,19 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { cx } from '../lib/cx'
 import { isolate } from '../lib/events'
-import { schemaSummary } from '../lib/labels'
-import { buildSchema, countSchema, expandablePaths, flattenSchema } from '../lib/schema'
+import { addColumnTitle, schemaSummary } from '../lib/labels'
+import { buildSchema, columnedPaths, countSchema, expandablePaths, flattenSchema } from '../lib/schema'
 import type { SchemaViewState } from '../types/ui'
-import type { Row } from '../types/workbench'
+import type { Column, Row } from '../types/workbench'
 import styles from './SchemaPanel.module.css'
 
 interface SchemaPanelProps {
   rows: Row[]
+  /** Columns of the active table, to tell which paths are already shown. */
+  columns: Column[]
   state: SchemaViewState
   onChange: (patch: Partial<SchemaViewState>) => void
+  onAddColumn: (path: string, key: string) => void
 }
 
 const COPIED_RESET_MS = 1100
@@ -20,7 +23,7 @@ const INDENT_STEP = 14
 const FOOT_HINT = 'click a row to copy its path · ▸ to expand'
 
 /** Schema tab: the shape inferred from the records, as a collapsible tree. */
-export function SchemaPanel({ rows, state, onChange }: SchemaPanelProps) {
+export function SchemaPanel({ rows, columns, state, onChange, onAddColumn }: SchemaPanelProps) {
   const [copiedPath, setCopiedPath] = useState('')
 
   const schema = useMemo(() => buildSchema(rows), [rows])
@@ -30,6 +33,7 @@ export function SchemaPanel({ rows, state, onChange }: SchemaPanelProps) {
     () => flattenSchema(schema, state.open, state.optionalOnly),
     [schema, state.open, state.optionalOnly],
   )
+  const columned = useMemo(() => columnedPaths(columns), [columns])
 
   useEffect(() => {
     if (!copiedPath) return
@@ -86,42 +90,56 @@ export function SchemaPanel({ rows, state, onChange }: SchemaPanelProps) {
       </div>
 
       <div className={styles.tree}>
-        {nodes.map((node) => (
-          <div
-            key={node.path}
-            className={cx(styles.row, copiedPath === node.path && styles.rowCopied)}
-            style={{ paddingLeft: INDENT_BASE + node.depth * INDENT_STEP }}
-            title="Click to copy path"
-            onClick={() => void copyPath(node.path)}
-          >
-            {node.hasChildren ? (
+        {nodes.map((node) => {
+          const added = columned.has(node.path)
+
+          return (
+            <div
+              key={node.path}
+              className={cx(styles.row, copiedPath === node.path && styles.rowCopied)}
+              style={{ paddingLeft: INDENT_BASE + node.depth * INDENT_STEP }}
+              title="Click to copy path"
+              onClick={() => void copyPath(node.path)}
+            >
+              {node.hasChildren ? (
+                <button
+                  type="button"
+                  className={styles.caret}
+                  aria-label={node.open ? `Collapse ${node.key}` : `Expand ${node.key}`}
+                  onClick={isolate(() => toggleBranch(node.path))}
+                >
+                  {node.open ? '▾' : '▸'}
+                </button>
+              ) : (
+                <span className={styles.caret} />
+              )}
+              <span className={cx(styles.key, node.hasChildren && styles.keyBranch)} title={node.path}>
+                {node.key}
+              </span>
+              {node.optional ? (
+                <span className={styles.optional} title={`present on ${node.present} of ${node.of}`}>
+                  opt
+                </span>
+              ) : null}
+              {node.mixed ? (
+                <span className={styles.mixed} title="More than one type across records">
+                  mixed
+                </span>
+              ) : null}
+              <span className={styles.type}>{node.type}</span>
               <button
                 type="button"
-                className={styles.caret}
-                aria-label={node.open ? `Collapse ${node.key}` : `Expand ${node.key}`}
-                onClick={isolate(() => toggleBranch(node.path))}
+                className={styles.add}
+                title={addColumnTitle(node.key, added)}
+                aria-label={`Add ${node.key} as a column`}
+                disabled={added}
+                onClick={isolate(() => onAddColumn(node.path, node.key))}
               >
-                {node.open ? '▾' : '▸'}
+                {added ? '✓' : '+'}
               </button>
-            ) : (
-              <span className={styles.caret} />
-            )}
-            <span className={cx(styles.key, node.hasChildren && styles.keyBranch)} title={node.path}>
-              {node.key}
-            </span>
-            {node.optional ? (
-              <span className={styles.optional} title={`present on ${node.present} of ${node.of}`}>
-                opt
-              </span>
-            ) : null}
-            {node.mixed ? (
-              <span className={styles.mixed} title="More than one type across records">
-                mixed
-              </span>
-            ) : null}
-            <span className={styles.type}>{node.type}</span>
-          </div>
-        ))}
+            </div>
+          )
+        })}
         {nodes.length === 0 ? <div className={styles.empty}>{emptyText}</div> : null}
       </div>
 

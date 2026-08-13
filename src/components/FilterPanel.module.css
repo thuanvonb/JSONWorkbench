@@ -58,7 +58,7 @@
 .columnHead,
 .row {
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) 74px minmax(0, 1fr) 26px 16px;
+  grid-template-columns: 22px minmax(0, 1fr) 98px minmax(0, 1fr) 26px 16px;
   gap: 5px;
   align-items: center;
 }

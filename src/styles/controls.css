@@ -1,6 +1,13 @@
 /* Shared control primitives. Prefixed to keep them distinct from the
    component-scoped CSS module class names. */
 
+/* Set on the body while the side panel is being dragged: the pointer leaves the
+   grip at once, so the cursor and the selection lock have to be page-wide. */
+body.wb-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
 .wb-btn {
   padding: 7px 12px;
   font-size: 12px;

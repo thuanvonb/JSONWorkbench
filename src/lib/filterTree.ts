@@ -135,6 +135,8 @@ function settleOnLeft(op: BoolOp, left: boolean): boolean | null {
       return left ? false : null
     case 'IMPLIES':
       return left ? null : true
+    case 'NOT IMPLIES':
+      return left ? null : false
     // XOR and XNOR always need both sides.
     default:
       return null
@@ -158,6 +160,9 @@ function combine(op: BoolOp, a: boolean, b: boolean): boolean {
     // Material implication: passes unless the left side holds and the right does not.
     case 'IMPLIES':
       return !a || b
+    // Its negation: only the case implication rules out.
+    case 'NOT IMPLIES':
+      return a && !b
   }
 }
 

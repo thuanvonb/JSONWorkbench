@@ -61,9 +61,12 @@ export function createCompoundFilter(existing: Filter[]): CompoundFilter {
   }
 }
 
+/** One column reading a path out of each record, named after its last segment. */
+export function createPathColumn(path: string, name = lastSegment(path)): Column {
+  return { id: createId(), name, kind: 'path', path }
+}
+
 /** A first pass at a table: one path column per leaf key of the records. */
 export function inferColumns(rows: Row[]): Column[] {
-  return leafPaths(rows)
-    .slice(0, MAX_INFERRED_COLUMNS)
-    .map((path) => ({ id: createId(), name: lastSegment(path), kind: 'path' as const, path }))
+  return leafPaths(rows).slice(0, MAX_INFERRED_COLUMNS).map((path) => createPathColumn(path))
 }

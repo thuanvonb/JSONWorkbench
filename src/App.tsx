@@ -20,6 +20,7 @@ import { downloadText } from './lib/download'
 import {
   createCompoundFilter,
   createCustomFilter,
+  createPathColumn,
   createSimpleFilter,
   inferColumns,
 } from './lib/factories'
@@ -27,6 +28,7 @@ import { buildFilterPlan } from './lib/filterTree'
 import { createId } from './lib/id'
 import { describeInspect } from './lib/inspect'
 import { currentSetupLabel, rowCountLabel, workspaceSummary } from './lib/labels'
+import { DEFAULT_PANEL_WIDTH } from './lib/panelSize'
 import { parseRecords, sameShape } from './lib/parse'
 import type { Profile } from './lib/profiles'
 import { profileViews, shapeKey } from './lib/profiles'
@@ -60,6 +62,8 @@ export default function App() {
   const [panel, setPanel] = useState<PanelTab | null>(null)
   // Which tab the Panel button reopens on.
   const [lastPanel, setLastPanel] = useState<PanelTab>('schema')
+  // Held here rather than in the panel, so a dragged width survives closing it.
+  const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH)
   const [schemaView, setSchemaView] = useState<SchemaViewState>({ open: {}, optionalOnly: false })
   const [popover, setPopover] = useState<PopoverState | null>(null)
   const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null)
@@ -198,6 +202,10 @@ export default function App() {
     setPopover(null)
   }
 
+  /** Schema tab: one click puts a path on the table as a column. */
+  const addPathColumn = (path: string, key: string) =>
+    dispatch({ type: 'column/add', column: createPathColumn(path, key) })
+
   const inferTable = () => {
     const columns = inferColumns(workspace.rows)
     if (columns.length) dispatch({ type: 'columns/replace', columns })
@@ -319,12 +327,20 @@ export default function App() {
           <SidePanel
             tab={panel}
             badges={{ columns: view.columns.length, filter: view.filters.length }}
+            width={panelWidth}
+            onWidth={setPanelWidth}
             onTab={openPanel}
             onClose={closePanel}
           >
             {panel === 'record' ? <InspectorPanel detail={inspectDetail} /> : null}
             {panel === 'schema' ? (
-              <SchemaPanel rows={workspace.rows} state={schemaView} onChange={patchSchemaView} />
+              <SchemaPanel
+                rows={workspace.rows}
+                columns={view.columns}
+                state={schemaView}
+                onChange={patchSchemaView}
+                onAddColumn={addPathColumn}
+              />
             ) : null}
             {panel === 'columns' ? (
               <ColumnsPanel
