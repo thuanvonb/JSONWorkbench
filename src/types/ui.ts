@@ -1,7 +1,4 @@
-import type { ColumnKind, FilterOp } from './workbench'
-
-/** Sentinel column id used by the filter popover to mean "raw JS predicate". */
-export const JS_FILTER_OPTION = '@js'
+import type { ColumnKind } from './workbench'
 
 export interface ColumnDraft {
   id: string
@@ -13,16 +10,8 @@ export interface ColumnDraft {
   isNew: boolean
 }
 
-export interface FilterDraft {
-  /** A column id, or `JS_FILTER_OPTION`. */
-  colId: string
-  op: FilterOp
-  value: string
-  code: string
-}
-
 /** Which tab the right-hand panel is showing; null closes it. */
-export type PanelTab = 'record' | 'schema'
+export type PanelTab = 'record' | 'schema' | 'columns' | 'filter'
 
 /** What the schema tree is showing: which branches are open, and the filter. */
 export interface SchemaViewState {
@@ -35,9 +24,7 @@ export interface Point {
   y: number
 }
 
-export type PopoverState =
-  | ({ kind: 'column'; draft: ColumnDraft } & Point)
-  | ({ kind: 'filter'; draft: FilterDraft } & Point)
+export type PopoverState = { kind: 'column'; draft: ColumnDraft } & Point
 
 export interface RenameTarget {
   id: string

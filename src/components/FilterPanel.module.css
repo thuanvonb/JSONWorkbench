@@ -1,0 +1,223 @@
+.tab {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 0 14px;
+  height: 30px;
+  border-bottom: 1px solid var(--line-faint);
+  background: var(--bar);
+}
+
+.meta {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--fg-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.add {
+  flex: none;
+  padding: 2px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--fg-muted);
+  font-size: 10.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.add:hover {
+  border-color: var(--line-hover);
+}
+
+.addAccent {
+  border-color: var(--acc-line);
+  background: var(--acc-bg);
+  color: var(--acc-fg);
+}
+
+.addAccent:hover {
+  border-color: var(--acc-line);
+  background: var(--acc-bg-hover);
+}
+
+/* The row grid: id · target · operator · value · on · delete. */
+.columnHead,
+.row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 74px minmax(0, 1fr) 26px 16px;
+  gap: 5px;
+  align-items: center;
+}
+
+.columnHead {
+  flex: none;
+  height: 22px;
+  padding: 0 10px 0 12px;
+  border-bottom: 1px solid var(--line-faint);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-fainter);
+}
+
+.headId {
+  text-align: right;
+}
+
+.headOn {
+  text-align: center;
+}
+
+.rows {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.row {
+  padding: 5px 10px 5px 12px;
+  border-bottom: 1px solid var(--line-faint);
+}
+
+.rowCompound {
+  background: var(--bar);
+}
+
+.ordinal {
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+}
+
+.ordinalCompound {
+  color: var(--fg-ghost);
+}
+
+.select {
+  min-width: 0;
+  padding: 4px 5px;
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  outline: none;
+  background: var(--surface);
+  color: var(--fg-head);
+  font-size: 11px;
+}
+
+.selectTight {
+  padding: 4px 3px;
+}
+
+.selectMono {
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.value {
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  outline: none;
+  background: var(--surface);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.value:focus {
+  border-color: var(--acc);
+}
+
+.valueOff {
+  background: var(--surface-disabled);
+}
+
+/* A custom expression takes the target, operator and value cells together. */
+.code {
+  grid-column: span 3;
+}
+
+.flag {
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--fg-soft);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.flagOn {
+  border-color: var(--acc-line);
+  background: var(--acc-bg);
+  color: var(--acc-fg);
+}
+
+.remove {
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: none;
+  color: var(--fg-ghost);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.remove:hover {
+  background: var(--danger-bg-hover);
+  color: var(--danger);
+}
+
+.empty {
+  padding: 26px 20px;
+  text-align: center;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--fg-faint);
+}
+
+.foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  height: 26px;
+  border-top: 1px solid var(--line-faint);
+  background: var(--bar);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--fg-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -1,7 +1,7 @@
-import type { Column, Filter, FilterOp, Row } from '../types/workbench'
+import type { BoolOp, Column, Filter, FilterOp, Row } from '../types/workbench'
 import { cellValue, toSearchText } from './cell'
 import { evaluate } from './expression'
-import { lastSegment } from './path'
+import { createId } from './id'
 
 export interface FilterOpOption {
   id: FilterOp
@@ -22,6 +22,21 @@ export const FILTER_OPS: FilterOpOption[] = [
   { id: 'regex', name: 'matches /re/' },
 ]
 
+export interface BoolOpOption {
+  id: BoolOp
+  name: string
+}
+
+export const BOOL_OPS: BoolOpOption[] = [
+  { id: 'AND', name: 'AND' },
+  { id: 'OR', name: 'OR' },
+  { id: 'XOR', name: 'XOR' },
+  { id: 'NAND', name: 'NAND' },
+  { id: 'NOR', name: 'NOR' },
+  { id: 'XNOR', name: 'XNOR' },
+  { id: 'THEREFORE', name: 'THEREFORE' },
+]
+
 /** Ops that ignore the value input. */
 const VALUELESS_OPS: FilterOp[] = ['empty', 'nempty']
 
@@ -30,11 +45,21 @@ export function isValuelessOp(op: FilterOp): boolean {
 }
 
 /**
+ * Whether a row actually narrows the table: it has to be switched on, and
+ * compound rows are stored but not evaluated yet.
+ */
+export function isApplied(filter: Filter): boolean {
+  return filter.enabled && filter.type !== 'compound'
+}
+
+/**
  * A filter that cannot be evaluated (unknown column, broken regex, throwing
  * expression) keeps the row: a half-typed filter should not hide data.
  */
 export function passesFilter(filter: Filter, row: Row, i: number, columns: Column[]): boolean {
-  if (filter.kind === 'js') {
+  if (filter.type === 'compound') return true
+
+  if (filter.type === 'custom') {
     const result = evaluate(filter.code, row, i)
     return Boolean(result)
   }
@@ -84,17 +109,58 @@ function isComparable(a: number, b: number): boolean {
   return !Number.isNaN(a) && !Number.isNaN(b)
 }
 
-const CODE_LABEL_LIMIT = 34
+/** A filter row as it may sit in localStorage, from this shape or the one before it. */
+interface SavedFilter {
+  id?: string
+  type?: string
+  /** Pre-panel rows were tagged `kind: 'col' | 'js'` and had no on/off flag. */
+  kind?: string
+  enabled?: boolean
+  colId?: string
+  op?: FilterOp
+  value?: string
+  code?: string
+  left?: unknown
+  cop?: BoolOp
+  right?: unknown
+}
 
-/** Short human label for a filter pill. */
-export function filterLabel(filter: Filter, columns: Column[]): string {
-  if (filter.kind === 'js') {
-    const code = filter.code
-    return `js: ${code.length > CODE_LABEL_LIMIT ? `${code.slice(0, CODE_LABEL_LIMIT)}…` : code}`
+/** Upgrades one saved filter row to the current shape; drops anything unreadable. */
+export function normalizeFilter(input: unknown): Filter | null {
+  if (!input || typeof input !== 'object') return null
+  const saved = input as SavedFilter
+  const id = saved.id ?? createId()
+  const type = saved.type ?? (saved.kind === 'js' ? 'custom' : 'simple')
+  // Rows saved before the flag existed were being applied, so they stay applied.
+  const enabled = saved.enabled !== false
+
+  if (type === 'custom') return { id, type, enabled, code: saved.code ?? '' }
+  if (type === 'compound') {
+    return {
+      id,
+      type,
+      enabled,
+      left: rowRef(saved.left),
+      cop: saved.cop ?? 'AND',
+      right: rowRef(saved.right),
+    }
   }
-  const col = columns.find((c) => c.id === filter.colId)
-  const op = FILTER_OPS.find((o) => o.id === filter.op)
-  const name = col ? col.name || lastSegment(col.path ?? '') : '?'
-  const suffix = isValuelessOp(filter.op) ? '' : ` ${filter.value}`
-  return `${name} ${op ? op.name : filter.op}${suffix}`
+  return {
+    id,
+    type: 'simple',
+    enabled,
+    colId: saved.colId ?? '',
+    op: saved.op ?? 'contains',
+    value: saved.value ?? '',
+  }
+}
+
+export function normalizeFilters(input: unknown): Filter[] {
+  if (!Array.isArray(input)) return []
+  return input.map(normalizeFilter).filter((f): f is Filter => f !== null)
+}
+
+/** Compound operands are 1-based row numbers; anything else means "unset". */
+export function rowRef(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
 }

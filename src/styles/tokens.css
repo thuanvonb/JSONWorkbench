@@ -9,6 +9,7 @@
   --surface-sunken: oklch(0.985 0.004 80);
   --row-alt: oklch(0.978 0.004 80);
   --bar: oklch(0.975 0.005 80);
+  --surface-disabled: oklch(0.965 0.005 78);
   --bg: oklch(0.955 0.007 80);
   --head: oklch(0.945 0.007 78);
   --chrome: oklch(0.925 0.008 78);

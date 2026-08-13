@@ -45,70 +45,9 @@
   background: var(--line);
 }
 
-.filters {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.spacer {
   flex: 1;
   min-width: 0;
-  overflow-x: auto;
-}
-
-.pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 6px 3px 9px;
-  border-radius: 20px;
-  font-size: 11px;
-  white-space: nowrap;
-  background: var(--acc-bg);
-  border: 1px solid var(--acc-line);
-  color: var(--acc-fg);
-}
-
-.pillLabel {
-  font-family: var(--mono);
-  font-size: 10.5px;
-}
-
-.pillRemove {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: none;
-  color: var(--acc-fg-soft);
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.pillRemove:hover {
-  background: var(--acc-line-hover);
-}
-
-.addFilter {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border: 1px dashed var(--line-dashed);
-  border-radius: 20px;
-  background: none;
-  color: var(--fg-dim);
-  font-size: 11px;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.addFilter:hover {
-  border-color: var(--acc);
-  color: var(--acc-fg-bool);
 }
 
 .search {
@@ -129,4 +68,29 @@
 
 .action {
   flex: none;
+}
+
+/* Buttons that report state: the filter count, and whether the panel is open. */
+.toggle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.toggleOn {
+  border-color: var(--acc-line);
+  background: var(--acc-bg);
+  color: var(--acc-fg);
+}
+
+.badge {
+  font-family: var(--mono);
+  font-size: 9.5px;
+}
+
+.mark {
+  font-family: var(--mono);
+  font-size: 11px;
 }

@@ -1,6 +1,6 @@
 import type { RowRef, TableView, Workspace } from '../types/workbench'
 import { cellValue, toSearchText } from './cell'
-import { passesFilter } from './filters'
+import { isApplied, passesFilter } from './filters'
 
 /** Applies the view's filters, the global search box, then the sort. */
 export function selectRows(workspace: Workspace, view: TableView, search: string): RowRef[] {
@@ -8,6 +8,7 @@ export function selectRows(workspace: Workspace, view: TableView, search: string
   let out: RowRef[] = workspace.rows.map((row, i) => ({ row, i }))
 
   for (const filter of view.filters) {
+    if (!isApplied(filter)) continue
     out = out.filter((r) => passesFilter(filter, r.row, r.i, view.columns))
   }
 

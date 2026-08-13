@@ -23,8 +23,12 @@ export type WorkbenchAction =
   | { type: 'column/update'; column: Column }
   | { type: 'column/remove'; id: string }
   | { type: 'column/move'; index: number; dir: -1 | 1 }
+  /** Swaps the whole column set, as "Infer table" does. */
+  | { type: 'columns/replace'; columns: Column[] }
   | { type: 'sort/toggle'; colId: string }
   | { type: 'filter/add'; filter: Filter }
+  /** Replaces one filter row with an edited copy of itself. */
+  | { type: 'filter/update'; filter: Filter }
   | { type: 'filter/remove'; id: string }
 
 export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction): WorkbenchState {
@@ -111,7 +115,7 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
     case 'column/remove':
       return patchView(state, (v) => ({
         columns: v.columns.filter((c) => c.id !== action.id),
-        filters: v.filters.filter((f) => f.kind === 'js' || f.colId !== action.id),
+        filters: v.filters.filter((f) => f.type !== 'simple' || f.colId !== action.id),
         sort: v.sort && v.sort.colId === action.id ? null : v.sort,
       }))
 
@@ -126,6 +130,9 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
         return { columns }
       })
 
+    case 'columns/replace':
+      return patchView(state, () => ({ columns: action.columns }))
+
     // asc -> desc -> unsorted
     case 'sort/toggle':
       return patchView(state, (v) => ({
@@ -139,6 +146,11 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
 
     case 'filter/add':
       return patchView(state, (v) => ({ filters: [...v.filters, action.filter] }))
+
+    case 'filter/update':
+      return patchView(state, (v) => ({
+        filters: v.filters.map((f) => (f.id === action.filter.id ? action.filter : f)),
+      }))
 
     case 'filter/remove':
       return patchView(state, (v) => ({ filters: v.filters.filter((f) => f.id !== action.id) }))

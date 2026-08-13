@@ -26,21 +26,41 @@ export type FilterOp =
   | 'nempty'
   | 'regex'
 
-export interface ColumnFilter {
+/** Boolean connective a compound filter row combines its two operands with. */
+export type BoolOp = 'AND' | 'OR' | 'XOR' | 'NAND' | 'NOR' | 'XNOR' | 'THEREFORE'
+
+interface FilterRow {
   id: string
-  kind: 'col'
+  /** Only applied rows narrow the table, so a row can be parked while it is written. */
+  enabled: boolean
+}
+
+export interface SimpleFilter extends FilterRow {
+  type: 'simple'
   colId: string
   op: FilterOp
   value: string
 }
 
-export interface JsFilter {
-  id: string
-  kind: 'js'
+export interface CustomFilter extends FilterRow {
+  type: 'custom'
   code: string
 }
 
-export type Filter = ColumnFilter | JsFilter
+/**
+ * Combines two other filter rows, referenced by their 1-based row number.
+ * Stored and edited, but not evaluated yet.
+ */
+export interface CompoundFilter extends FilterRow {
+  type: 'compound'
+  left: number | null
+  cop: BoolOp
+  right: number | null
+}
+
+export type Filter = SimpleFilter | CustomFilter | CompoundFilter
+
+export type FilterType = Filter['type']
 
 export type SortDir = 'asc' | 'desc'
 

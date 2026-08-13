@@ -1,37 +1,36 @@
 import type { MouseEvent } from 'react'
 
-import { filterLabel } from '../lib/filters'
-import type { Column, Filter } from '../types/workbench'
+import { cx } from '../lib/cx'
 import styles from './Toolbar.module.css'
 
 interface ToolbarProps {
   summary: string
-  columns: Column[]
-  filters: Filter[]
+  /** Total filter rows, shown next to the Filter button. */
+  filterCount: number
+  /** How many of those rows actually narrow the table. */
+  appliedCount: number
+  panelOpen: boolean
   search: string
   onToggleSource: () => void
-  onRemoveFilter: (id: string) => void
-  onOpenFilterMenu: (anchor: DOMRect) => void
-  onOpenSchema: () => void
-  onOpenOrganize: () => void
+  onOpenFilter: () => void
   onAddColumn: (anchor: DOMRect) => void
   onSearchChange: (value: string) => void
   onExportCsv: () => void
+  onTogglePanel: () => void
 }
 
 export function Toolbar({
   summary,
-  columns,
-  filters,
+  filterCount,
+  appliedCount,
+  panelOpen,
   search,
   onToggleSource,
-  onRemoveFilter,
-  onOpenFilterMenu,
-  onOpenSchema,
-  onOpenOrganize,
+  onOpenFilter,
   onAddColumn,
   onSearchChange,
   onExportCsv,
+  onTogglePanel,
 }: ToolbarProps) {
   const anchorOf = (event: MouseEvent<HTMLButtonElement>) => event.currentTarget.getBoundingClientRect()
 
@@ -42,34 +41,15 @@ export function Toolbar({
         <span className={styles.summaryText}>{summary}</span>
       </button>
       <div className={styles.divider} />
-      <div className={styles.filters}>
-        {filters.map((filter) => (
-          <div key={filter.id} className={styles.pill}>
-            <span className={styles.pillLabel}>{filterLabel(filter, columns)}</span>
-            <button
-              type="button"
-              className={styles.pillRemove}
-              aria-label="Remove filter"
-              onClick={() => onRemoveFilter(filter.id)}
-            >
-              ×
-            </button>
-          </div>
-        ))}
-        <button type="button" className={styles.addFilter} onClick={(event) => onOpenFilterMenu(anchorOf(event))}>
-          + filter
-        </button>
-      </div>
+      <div className={styles.spacer} />
       <button
         type="button"
-        className={`wb-btn wb-btn-sm ${styles.action}`}
-        title="Schema inferred from the input"
-        onClick={onOpenSchema}
+        className={cx('wb-btn wb-btn-sm', styles.toggle, appliedCount > 0 && styles.toggleOn)}
+        title="Filter rows"
+        onClick={onOpenFilter}
       >
-        Schema
-      </button>
-      <button type="button" className={`wb-btn wb-btn-sm ${styles.action}`} onClick={onOpenOrganize}>
-        Organize
+        <span>Filter</span>
+        <span className={styles.badge}>{filterCount || ''}</span>
       </button>
       <button
         type="button"
@@ -87,6 +67,16 @@ export function Toolbar({
       />
       <button type="button" className={`wb-btn wb-btn-sm ${styles.action}`} onClick={onExportCsv}>
         Export CSV
+      </button>
+      <button
+        type="button"
+        className={cx('wb-btn wb-btn-sm', styles.toggle, panelOpen && styles.toggleOn)}
+        title="Record, schema and columns panel"
+        aria-pressed={panelOpen}
+        onClick={onTogglePanel}
+      >
+        <span className={styles.mark}>{panelOpen ? '◨' : '◧'}</span>
+        <span>Panel</span>
       </button>
     </div>
   )

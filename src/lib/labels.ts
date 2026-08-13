@@ -14,6 +14,19 @@ export function schemaSummary(counts: SchemaCounts, recordCount: number): string
   return `${counts.total} keys · ${counts.optional} optional · ${recordCount} records`
 }
 
+/** Filter panel header: how many rows there are, and how many narrow the table. */
+export function filterPanelMeta(total: number, applied: number): string {
+  if (total === 0) return 'no filter rows yet'
+  return `${total} rows · ${applied} applied`
+}
+
+/** Filter panel footer: what the rows add up to. */
+export function filterPanelFoot(compoundCount: number): string {
+  if (compoundCount === 0) return 'applied rows combine with AND'
+  const rows = compoundCount === 1 ? 'row' : 'rows'
+  return `${compoundCount} compound ${rows} saved — not evaluated yet`
+}
+
 /** Profiles list subtitle: what one saved setup holds. */
 export function profileMeta(profile: Profile): string {
   const columns = profile.views.reduce((n, v) => n + v.columns.length, 0)

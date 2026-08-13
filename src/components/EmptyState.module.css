@@ -12,6 +12,12 @@
   color: var(--fg-soft);
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .action {
   font-size: 12px;
   font-weight: 500;
@@ -25,4 +31,19 @@
 
 .action:hover {
   background: var(--acc-bg-hover);
+}
+
+.secondary {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--fg-strong);
+}
+
+.secondary:hover {
+  background: var(--bar);
 }

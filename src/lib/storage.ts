@@ -1,6 +1,7 @@
 import type { DisplaySettings, TableView, Workspace } from '../types/workbench'
 import { DEFAULT_DISPLAY } from '../types/workbench'
 import { createView } from './factories'
+import { normalizeFilters } from './filters'
 import { createId } from './id'
 import type { Profile } from './profiles'
 
@@ -83,13 +84,13 @@ function migrateWorkspace(input: unknown): Workspace {
     name: saved.name ?? 'Workspace',
     raw: saved.raw ?? '',
     rows: Array.isArray(saved.rows) ? saved.rows : [],
-    views: Array.isArray(saved.views) ? saved.views : [],
+    views: Array.isArray(saved.views) ? saved.views.map(migrateView) : [],
     viewId: saved.viewId ?? '',
   }
 
   if (workspace.views.length === 0) {
     const view = createView('Table 1', saved.columns ?? [])
-    view.filters = saved.filters ?? []
+    view.filters = normalizeFilters(saved.filters)
     view.sort = saved.sort ?? null
     workspace.views = [view]
   }
@@ -97,4 +98,16 @@ function migrateWorkspace(input: unknown): Workspace {
     workspace.viewId = workspace.views[0].id
   }
   return workspace
+}
+
+/** Filter rows changed shape when the filter panel replaced the pills. */
+function migrateView(input: unknown): TableView {
+  const saved = (input ?? {}) as Partial<TableView>
+  return {
+    id: saved.id ?? createId(),
+    name: saved.name ?? 'Table 1',
+    columns: Array.isArray(saved.columns) ? saved.columns : [],
+    filters: normalizeFilters(saved.filters),
+    sort: saved.sort ?? null,
+  }
 }

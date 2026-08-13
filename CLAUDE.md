@@ -41,7 +41,7 @@ Ids from `createId()` are unique across workspaces *and* views, which is why the
 
 `App.tsx` owns the *ephemeral* UI state that is deliberately not persisted and not in the reducer: search text, modal open flags, parse error, inspector selection, popover state, rename draft. It wires everything together and is the only component that calls `dispatch`; child components take callbacks.
 
-Persistence lives in `src/lib/storage.ts` under key `json-workbench.v1`. `migrateWorkspace` there upgrades pre-tables saves (which kept `columns`/`filters`/`sort` at the workspace top level) — keep it working when the shape changes again.
+Persistence lives in `src/lib/storage.ts` under key `json-workbench.v1`. `migrateWorkspace` there upgrades pre-tables saves (which kept `columns`/`filters`/`sort` at the workspace top level), and `normalizeFilter` in `src/lib/filters.ts` upgrades pre-panel filter rows (which were tagged `kind: 'col' | 'js'` and had no on/off flag) — keep both working when the shape changes again. Saved profiles carry the same filter shape, so `src/lib/profiles.ts` has its own normalizer for them.
 
 ### The render pipeline
 
@@ -51,12 +51,12 @@ Persistence lives in `src/lib/storage.ts` under key `json-workbench.v1`. `migrat
 
 ### User-supplied JavaScript
 
-`src/lib/expression.ts` compiles `js` columns and `js` filters with `new Function('row', 'i', ...)`, cached by source string. This is intentional: it's the product feature, and the code only ever touches data the user pasted into their own browser. Two behaviours to preserve:
+`src/lib/expression.ts` compiles `js` columns and `custom` filter rows with `new Function('row', 'i', ...)`, cached by source string. This is intentional: it's the product feature, and the code only ever touches data the user pasted into their own browser. Two behaviours to preserve:
 
 - If the expression evaluates to a function (so `row => row.total` works as well as `row.total`), the result is applied to `(row, i)`.
 - Compile and runtime errors are folded into a `CellError` (`{ __err }`) sentinel that flows through the value pipeline and renders as `⚠ message`, rather than throwing.
 
-Related convention in `src/lib/filters.ts`: a filter that *cannot* be evaluated (unknown column, bad regex) returns `true` and keeps the row — a half-typed filter must never silently hide data.
+Related convention in `src/lib/filters.ts`: a filter that *cannot* be evaluated (unknown column, bad regex) returns `true` and keeps the row — a half-typed filter must never silently hide data. For the same reason a filter row is only applied once its `enabled` flag is switched on in the Filter tab, and new rows start off. `compound` rows (two rows joined by a boolean connective) are stored and edited but not evaluated yet; `isApplied` is the single place that decides what narrows the table.
 
 ### Styling
 

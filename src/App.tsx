@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
 
 import { ColumnPopover } from './components/ColumnPopover'
+import { ColumnsPanel } from './components/ColumnsPanel'
 import { DataTable } from './components/DataTable'
 import { EmptyState } from './components/EmptyState'
-import { FilterPopover } from './components/FilterPopover'
+import { FilterPanel } from './components/FilterPanel'
 import { InspectorPanel } from './components/InspectorPanel'
-import { OrganizeModal } from './components/OrganizeModal'
 import { ProfilesModal } from './components/ProfilesModal'
 import { SchemaPanel } from './components/SchemaPanel'
 import { SidePanel } from './components/SidePanel'
@@ -17,6 +17,13 @@ import { WorkspaceTabs } from './components/WorkspaceTabs'
 import { csvFileName, toCsv } from './lib/csv'
 import { demoRows } from './lib/demoData'
 import { downloadText } from './lib/download'
+import {
+  createCompoundFilter,
+  createCustomFilter,
+  createSimpleFilter,
+  inferColumns,
+} from './lib/factories'
+import { isApplied } from './lib/filters'
 import { createId } from './lib/id'
 import { describeInspect } from './lib/inspect'
 import { currentSetupLabel, rowCountLabel, workspaceSummary } from './lib/labels'
@@ -24,26 +31,19 @@ import { parseRecords, sameShape } from './lib/parse'
 import type { Profile } from './lib/profiles'
 import { profileViews, shapeKey } from './lib/profiles'
 import { collectPaths } from './lib/path'
-import {
-  COLUMN_POPOVER_SIZE,
-  FILTER_POPOVER_SIZE,
-  anchorLeftAligned,
-  anchorPopover,
-} from './lib/popover'
+import { COLUMN_POPOVER_SIZE, anchorPopover } from './lib/popover'
 import { computeAggregates, selectRows } from './lib/rows'
 import { useProfiles } from './state/useProfiles'
 import { useWorkbench } from './state/useWorkbench'
 import type {
   ColumnDraft,
-  FilterDraft,
   PanelTab,
   PopoverState,
   RenameController,
   RenameTarget,
   SchemaViewState,
 } from './types/ui'
-import { JS_FILTER_OPTION } from './types/ui'
-import type { Column, Inspect, Row } from './types/workbench'
+import type { Column, Filter, FilterType, Inspect, Row } from './types/workbench'
 import styles from './App.module.css'
 
 const FOOTER_HINT = 'click a cell for its raw value · click # for the whole record'
@@ -54,11 +54,12 @@ export default function App() {
 
   const [search, setSearch] = useState('')
   const [sourceOpen, setSourceOpen] = useState(false)
-  const [organizeOpen, setOrganizeOpen] = useState(false)
   const [profilesOpen, setProfilesOpen] = useState(false)
   const [parseError, setParseError] = useState('')
   const [inspect, setInspect] = useState<Inspect | null>(null)
   const [panel, setPanel] = useState<PanelTab | null>(null)
+  // Which tab the Panel button reopens on.
+  const [lastPanel, setLastPanel] = useState<PanelTab>('schema')
   const [schemaView, setSchemaView] = useState<SchemaViewState>({ open: {}, optionalOnly: false })
   const [popover, setPopover] = useState<PopoverState | null>(null)
   const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null)
@@ -80,6 +81,7 @@ export default function App() {
   if (!workspace || !view) return null
 
   const hasRows = workspace.rows.length > 0 && view.columns.length > 0
+  const appliedFilters = view.filters.filter(isApplied).length
 
   const rename: RenameController = {
     target: renameTarget,
@@ -196,53 +198,49 @@ export default function App() {
     setPopover(null)
   }
 
-  const openFilterMenu = (anchor: DOMRect) => {
-    const draft: FilterDraft = {
-      colId: view.columns[0]?.id ?? JS_FILTER_OPTION,
-      op: 'contains',
-      value: '',
-      code: '',
-    }
-    setPopover({
-      kind: 'filter',
-      ...anchorLeftAligned(anchor, FILTER_POPOVER_SIZE.width, FILTER_POPOVER_SIZE.height),
-      draft,
-    })
+  const inferTable = () => {
+    const columns = inferColumns(workspace.rows)
+    if (columns.length) dispatch({ type: 'columns/replace', columns })
   }
 
-  const patchFilterDraft = (patch: Partial<FilterDraft>) =>
-    setPopover((current) =>
-      current?.kind === 'filter' ? { ...current, draft: { ...current.draft, ...patch } } : current,
-    )
-
-  const applyFilter = () => {
-    if (popover?.kind !== 'filter') return
-    const draft = popover.draft
-    if (draft.colId === JS_FILTER_OPTION) {
-      if (draft.code.trim()) {
-        dispatch({ type: 'filter/add', filter: { id: createId(), kind: 'js', code: draft.code } })
-      }
-    } else {
-      dispatch({
-        type: 'filter/add',
-        filter: { id: createId(), kind: 'col', colId: draft.colId, op: draft.op, value: draft.value },
-      })
-    }
-    setPopover(null)
+  const addFilter = (type: FilterType) => {
+    const filter =
+      type === 'simple'
+        ? createSimpleFilter(view.columns[0]?.id ?? '')
+        : type === 'custom'
+          ? createCustomFilter()
+          : createCompoundFilter(view.filters.length)
+    dispatch({ type: 'filter/add', filter })
   }
 
-  // Selecting a value always brings the Record tab forward; clicking the same
-  // value again clears it, leaving the tab open on its hint.
+  const patchFilter = <F extends Filter>(filter: F, patch: Partial<F>) =>
+    dispatch({ type: 'filter/update', filter: { ...filter, ...patch } })
+
+  const openPanel = (tab: PanelTab) => {
+    setPanel(tab)
+    setLastPanel(tab)
+  }
+
+  const togglePanel = () => {
+    if (panel) setPanel(null)
+    else openPanel(lastPanel)
+  }
+
+  // Selecting a value brings the Record tab forward, unless the panel is parked
+  // on Schema or Columns — those stay put while cells are clicked. Clicking the
+  // same value again clears it, leaving the Record tab open on its hint.
+  const inspectTab: PanelTab = panel === 'schema' || panel === 'columns' ? panel : 'record'
+
   const toggleRowInspect = (index: number) => {
     const same = inspect?.kind === 'row' && inspect.i === index && panel === 'record'
-    setPanel('record')
+    openPanel(inspectTab)
     setInspect(same ? null : { kind: 'row', i: index })
   }
 
   const toggleCellInspect = (index: number, colId: string) => {
     const same =
       inspect?.kind === 'cell' && inspect.i === index && inspect.colId === colId && panel === 'record'
-    setPanel('record')
+    openPanel(inspectTab)
     setInspect(same ? null : { kind: 'cell', i: index, colId })
   }
 
@@ -275,17 +273,16 @@ export default function App() {
 
       <Toolbar
         summary={workspaceSummary(workspace.rows.length, view.columns.length, paths.length)}
-        columns={view.columns}
-        filters={view.filters}
+        filterCount={view.filters.length}
+        appliedCount={appliedFilters}
+        panelOpen={panel !== null}
         search={search}
         onToggleSource={() => setSourceOpen((open) => !open)}
-        onRemoveFilter={(id) => dispatch({ type: 'filter/remove', id })}
-        onOpenFilterMenu={openFilterMenu}
-        onOpenSchema={() => setPanel((current) => (current === 'schema' ? null : 'schema'))}
-        onOpenOrganize={() => setOrganizeOpen(true)}
+        onOpenFilter={() => openPanel('filter')}
         onAddColumn={openAddColumn}
         onSearchChange={setSearch}
         onExportCsv={exportCsv}
+        onTogglePanel={togglePanel}
       />
 
       <div className={styles.main}>
@@ -314,16 +311,40 @@ export default function App() {
                 if (workspace.rows.length) openAddColumn(event.currentTarget.getBoundingClientRect())
                 else setSourceOpen(true)
               }}
+              onInfer={workspace.rows.length ? inferTable : undefined}
             />
           )}
         </div>
         {panel ? (
-          <SidePanel tab={panel} onTab={setPanel} onClose={closePanel}>
-            {panel === 'record' ? (
-              <InspectorPanel detail={inspectDetail} />
-            ) : (
+          <SidePanel
+            tab={panel}
+            badges={{ columns: view.columns.length, filter: view.filters.length }}
+            onTab={openPanel}
+            onClose={closePanel}
+          >
+            {panel === 'record' ? <InspectorPanel detail={inspectDetail} /> : null}
+            {panel === 'schema' ? (
               <SchemaPanel rows={workspace.rows} state={schemaView} onChange={patchSchemaView} />
-            )}
+            ) : null}
+            {panel === 'columns' ? (
+              <ColumnsPanel
+                columns={view.columns}
+                display={display}
+                onAddColumn={openAddColumn}
+                onEditColumn={openEditColumn}
+                onMove={(index, dir) => dispatch({ type: 'column/move', index, dir })}
+                onDisplayChange={setDisplay}
+              />
+            ) : null}
+            {panel === 'filter' ? (
+              <FilterPanel
+                filters={view.filters}
+                columns={view.columns}
+                onAdd={addFilter}
+                onPatch={patchFilter}
+                onRemove={(id) => dispatch({ type: 'filter/remove', id })}
+              />
+            ) : null}
           </SidePanel>
         ) : null}
       </div>
@@ -372,16 +393,6 @@ export default function App() {
         />
       ) : null}
 
-      {organizeOpen ? (
-        <OrganizeModal
-          columns={view.columns}
-          display={display}
-          onMove={(index, dir) => dispatch({ type: 'column/move', index, dir })}
-          onDisplayChange={setDisplay}
-          onClose={() => setOrganizeOpen(false)}
-        />
-      ) : null}
-
       {popover?.kind === 'column' ? (
         <ColumnPopover
           x={popover.x}
@@ -392,18 +403,6 @@ export default function App() {
           onChange={patchColumnDraft}
           onApply={applyColumn}
           onRemove={removeColumn}
-          onClose={() => setPopover(null)}
-        />
-      ) : null}
-
-      {popover?.kind === 'filter' ? (
-        <FilterPopover
-          x={popover.x}
-          y={popover.y}
-          draft={popover.draft}
-          columns={view.columns}
-          onChange={patchFilterDraft}
-          onApply={applyFilter}
           onClose={() => setPopover(null)}
         />
       ) : null}

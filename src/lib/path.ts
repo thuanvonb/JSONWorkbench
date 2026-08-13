@@ -58,6 +58,33 @@ export function collectPaths(rows: Row[]): PathInfo[] {
   return seen
 }
 
+/** Deepest object nesting walked when inferring columns. */
+const LEAF_DEPTH = 3
+
+/**
+ * Leaf paths of the sampled records: nested objects are walked into rather than
+ * listed, so the result is a set of paths that hold values worth a column.
+ */
+export function leafPaths(rows: Row[]): string[] {
+  const seen: string[] = []
+
+  const walk = (obj: Record<string, unknown>, prefix: string, depth: number): void => {
+    if (depth > LEAF_DEPTH) return
+    for (const key of Object.keys(obj)) {
+      const value = obj[key]
+      const path = prefix ? `${prefix}.${key}` : key
+      if (isPlainRecord(value) && depth < LEAF_DEPTH) walk(value, path, depth + 1)
+      else if (!seen.includes(path)) seen.push(path)
+    }
+  }
+
+  for (const row of rows.slice(0, SAMPLE_SIZE)) {
+    if (isPlainRecord(row)) walk(row, '', 1)
+  }
+
+  return seen
+}
+
 export function lastSegment(path: string): string {
   return path.split('.').slice(-1)[0] ?? path
 }
