@@ -23,7 +23,7 @@ import {
   createSimpleFilter,
   inferColumns,
 } from './lib/factories'
-import { isApplied } from './lib/filters'
+import { buildFilterPlan } from './lib/filterTree'
 import { createId } from './lib/id'
 import { describeInspect } from './lib/inspect'
 import { currentSetupLabel, rowCountLabel, workspaceSummary } from './lib/labels'
@@ -71,6 +71,7 @@ export default function App() {
   const shown = useMemo(() => visible.slice(0, display.maxRows), [visible, display.maxRows])
   const aggregates = useMemo(() => (view ? computeAggregates(view, visible) : []), [view, visible])
   const paths = useMemo(() => (workspace ? collectPaths(workspace.rows) : []), [workspace])
+  const filterPlan = useMemo(() => buildFilterPlan(view?.filters ?? []), [view])
   const inspectDetail = useMemo(
     () => (workspace && view ? describeInspect(inspect, workspace.rows, view.columns) : null),
     [inspect, workspace, view],
@@ -81,7 +82,6 @@ export default function App() {
   if (!workspace || !view) return null
 
   const hasRows = workspace.rows.length > 0 && view.columns.length > 0
-  const appliedFilters = view.filters.filter(isApplied).length
 
   const rename: RenameController = {
     target: renameTarget,
@@ -209,7 +209,7 @@ export default function App() {
         ? createSimpleFilter(view.columns[0]?.id ?? '')
         : type === 'custom'
           ? createCustomFilter()
-          : createCompoundFilter(view.filters.length)
+          : createCompoundFilter(view.filters)
     dispatch({ type: 'filter/add', filter })
   }
 
@@ -274,7 +274,7 @@ export default function App() {
       <Toolbar
         summary={workspaceSummary(workspace.rows.length, view.columns.length, paths.length)}
         filterCount={view.filters.length}
-        appliedCount={appliedFilters}
+        appliedCount={filterPlan.roots.length}
         panelOpen={panel !== null}
         search={search}
         onToggleSource={() => setSourceOpen((open) => !open)}
@@ -340,6 +340,7 @@ export default function App() {
               <FilterPanel
                 filters={view.filters}
                 columns={view.columns}
+                plan={filterPlan}
                 onAdd={addFilter}
                 onPatch={patchFilter}
                 onRemove={(id) => dispatch({ type: 'filter/remove', id })}

@@ -9,7 +9,7 @@ import type {
   Workspace,
 } from '../types/workbench'
 import { createView } from './factories'
-import { rowRef } from './filters'
+import { normalizeBoolOp } from './filters'
 import { createId } from './id'
 
 /**
@@ -42,7 +42,11 @@ export interface ProfileColumn {
   code?: string
 }
 
-/** Like a live filter row, except simple rows point at a column by name. */
+/**
+ * Like a live filter row, except simple rows point at a column by name and
+ * compound rows point at their operands by 1-based row number: both ids are
+ * minted fresh on load.
+ */
 export type ProfileFilter =
   | { type: 'simple'; enabled: boolean; colName: string | null; op: FilterOp; value: string }
   | { type: 'custom'; enabled: boolean; code: string }
@@ -80,24 +84,32 @@ export function createProfile(name: string, workspace: Workspace): Profile {
 
 function snapshotView(view: TableView): ProfileView {
   const nameOf = (colId: string): string | null => view.columns.find((c) => c.id === colId)?.name ?? null
+  const positionOf = (filterId: string | null): number | null => {
+    const index = view.filters.findIndex((f) => f.id === filterId)
+    return index === -1 ? null : index + 1
+  }
   return {
     name: view.name,
     columns: view.columns.map((c) => ({ name: c.name, kind: c.kind, path: c.path, code: c.code })),
-    filters: view.filters.map((f) => snapshotFilter(f, nameOf)),
+    filters: view.filters.map((f) => snapshotFilter(f, nameOf, positionOf)),
     sortColName: view.sort ? nameOf(view.sort.colId) : null,
     sortDir: view.sort ? view.sort.dir : null,
   }
 }
 
-function snapshotFilter(filter: Filter, nameOf: (colId: string) => string | null): ProfileFilter {
+function snapshotFilter(
+  filter: Filter,
+  nameOf: (colId: string) => string | null,
+  positionOf: (filterId: string | null) => number | null,
+): ProfileFilter {
   if (filter.type === 'custom') return { type: 'custom', enabled: filter.enabled, code: filter.code }
   if (filter.type === 'compound') {
     return {
       type: 'compound',
       enabled: filter.enabled,
-      left: filter.left,
+      left: positionOf(filter.left),
       cop: filter.cop,
-      right: filter.right,
+      right: positionOf(filter.right),
     }
   }
   return {
@@ -125,42 +137,39 @@ export function profileViews(profile: Profile): TableView[] {
       id: createId(),
       name: saved.name || 'Table 1',
       columns,
-      filters: (saved.filters ?? [])
-        .map(normalizeProfileFilter)
-        .filter((f): f is ProfileFilter => f !== null)
-        .map((f) => liveFilter(f, idOf)),
+      filters: liveFilters(saved.filters ?? [], idOf),
       sort: sortOf(saved, idOf(saved.sortColName)),
     }
   })
 }
 
-function liveFilter(
-  saved: ProfileFilter,
+/** Ids are minted before the rows are built, so compounds can point at them. */
+function liveFilters(
+  input: unknown[],
   idOf: (name: string | null) => string | undefined,
-): Filter {
-  if (saved.type === 'custom') {
-    return { id: createId(), type: 'custom', enabled: saved.enabled, code: saved.code }
-  }
-  if (saved.type === 'compound') {
-    return {
-      id: createId(),
-      type: 'compound',
-      enabled: saved.enabled,
-      left: saved.left,
-      cop: saved.cop,
-      right: saved.right,
+): Filter[] {
+  const saved = input.map(normalizeProfileFilter).filter((f): f is ProfileFilter => f !== null)
+  const ids = saved.map(() => createId())
+  const at = (position: number | null): string | null =>
+    position === null ? null : ids[position - 1] ?? null
+
+  return saved.map((f, index) => {
+    const id = ids[index]
+    if (f.type === 'custom') return { id, type: 'custom', enabled: f.enabled, code: f.code }
+    if (f.type === 'compound') {
+      return { id, type: 'compound', enabled: f.enabled, left: at(f.left), cop: f.cop, right: at(f.right) }
     }
-  }
-  return {
-    id: createId(),
-    type: 'simple',
-    enabled: saved.enabled,
-    // A column that no longer exists leaves the filter inert rather than
-    // silently hiding rows.
-    colId: idOf(saved.colName) ?? '',
-    op: saved.op,
-    value: saved.value,
-  }
+    return {
+      id,
+      type: 'simple',
+      enabled: f.enabled,
+      // A column that no longer exists leaves the filter inert rather than
+      // silently hiding rows.
+      colId: idOf(f.colName) ?? '',
+      op: f.op,
+      value: f.value,
+    }
+  })
 }
 
 /** Profiles saved before the filter panel tagged rows `kind: 'col' | 'js'`. */
@@ -173,7 +182,7 @@ interface SavedProfileFilter {
   value?: string
   code?: string
   left?: unknown
-  cop?: BoolOp
+  cop?: unknown
   right?: unknown
 }
 
@@ -185,7 +194,13 @@ function normalizeProfileFilter(input: unknown): ProfileFilter | null {
 
   if (type === 'custom') return { type, enabled, code: saved.code ?? '' }
   if (type === 'compound') {
-    return { type, enabled, left: rowRef(saved.left), cop: saved.cop ?? 'AND', right: rowRef(saved.right) }
+    return {
+      type,
+      enabled,
+      left: position(saved.left),
+      cop: normalizeBoolOp(saved.cop),
+      right: position(saved.right),
+    }
   }
   return {
     type: 'simple',
@@ -194,6 +209,11 @@ function normalizeProfileFilter(input: unknown): ProfileFilter | null {
     op: saved.op ?? 'contains',
     value: saved.value ?? '',
   }
+}
+
+/** Operands are 1-based row numbers; anything else means "unset". */
+function position(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) ? value : null
 }
 
 function sortOf(saved: ProfileView, colId: string | undefined) {

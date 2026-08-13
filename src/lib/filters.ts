@@ -34,22 +34,28 @@ export const BOOL_OPS: BoolOpOption[] = [
   { id: 'NAND', name: 'NAND' },
   { id: 'NOR', name: 'NOR' },
   { id: 'XNOR', name: 'XNOR' },
-  { id: 'THEREFORE', name: 'THEREFORE' },
+  { id: 'IMPLIES', name: 'IMPLIES' },
 ]
+
+/** Connectives renamed since they were first saved. */
+const BOOL_OP_ALIASES: Record<string, BoolOp> = { THEREFORE: 'IMPLIES' }
+
+/**
+ * A saved connective, mapped through any rename. An unreadable one falls back to
+ * AND rather than reaching the evaluator, where an unknown connective would be
+ * neither true nor false.
+ */
+export function normalizeBoolOp(value: unknown): BoolOp {
+  if (typeof value !== 'string') return 'AND'
+  const name = BOOL_OP_ALIASES[value] ?? value
+  return BOOL_OPS.some((op) => op.id === name) ? (name as BoolOp) : 'AND'
+}
 
 /** Ops that ignore the value input. */
 const VALUELESS_OPS: FilterOp[] = ['empty', 'nempty']
 
 export function isValuelessOp(op: FilterOp): boolean {
   return VALUELESS_OPS.includes(op)
-}
-
-/**
- * Whether a row actually narrows the table: it has to be switched on, and
- * compound rows are stored but not evaluated yet.
- */
-export function isApplied(filter: Filter): boolean {
-  return filter.enabled && filter.type !== 'compound'
 }
 
 /**
@@ -120,13 +126,14 @@ interface SavedFilter {
   op?: FilterOp
   value?: string
   code?: string
+  /** An operand id, or a 1-based row number from before ids were stored. */
   left?: unknown
-  cop?: BoolOp
+  cop?: unknown
   right?: unknown
 }
 
-/** Upgrades one saved filter row to the current shape; drops anything unreadable. */
-export function normalizeFilter(input: unknown): Filter | null {
+/** Upgrades one saved row; positional operands are re-pointed by normalizeFilters. */
+function normalizeFilter(input: unknown): Filter | null {
   if (!input || typeof input !== 'object') return null
   const saved = input as SavedFilter
   const id = saved.id ?? createId()
@@ -140,9 +147,9 @@ export function normalizeFilter(input: unknown): Filter | null {
       id,
       type,
       enabled,
-      left: rowRef(saved.left),
-      cop: saved.cop ?? 'AND',
-      right: rowRef(saved.right),
+      left: operandId(saved.left),
+      cop: normalizeBoolOp(saved.cop),
+      right: operandId(saved.right),
     }
   }
   return {
@@ -157,10 +164,26 @@ export function normalizeFilter(input: unknown): Filter | null {
 
 export function normalizeFilters(input: unknown): Filter[] {
   if (!Array.isArray(input)) return []
-  return input.map(normalizeFilter).filter((f): f is Filter => f !== null)
+
+  const rows = input
+    .map((saved) => ({ saved: saved as SavedFilter, filter: normalizeFilter(saved) }))
+    .filter((row): row is { saved: SavedFilter; filter: Filter } => row.filter !== null)
+  const ids = rows.map((row) => row.filter.id)
+
+  // Compounds saved by position are re-pointed at the ids in those slots.
+  return rows.map(({ saved, filter }) =>
+    filter.type === 'compound'
+      ? { ...filter, left: byPosition(saved.left, ids) ?? filter.left, right: byPosition(saved.right, ids) ?? filter.right }
+      : filter,
+  )
 }
 
-/** Compound operands are 1-based row numbers; anything else means "unset". */
-export function rowRef(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null
+/** Only a string is an operand id; anything else leaves the operand unset. */
+function operandId(value: unknown): string | null {
+  return typeof value === 'string' && value !== '' ? value : null
+}
+
+function byPosition(value: unknown, ids: string[]): string | null {
+  if (typeof value !== 'number' || !Number.isInteger(value)) return null
+  return ids[value - 1] ?? null
 }

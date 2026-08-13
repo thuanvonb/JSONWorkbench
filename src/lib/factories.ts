@@ -2,6 +2,7 @@ import type {
   Column,
   CompoundFilter,
   CustomFilter,
+  Filter,
   Row,
   SimpleFilter,
   TableView,
@@ -48,15 +49,15 @@ export function createCustomFilter(): CustomFilter {
   return { id: createId(), type: 'custom', enabled: false, code: '' }
 }
 
-/** Points at the first two rows when there are rows to combine, otherwise unset. */
-export function createCompoundFilter(rowCount: number): CompoundFilter {
+/** Points at the first two existing rows, when there are rows to combine. */
+export function createCompoundFilter(existing: Filter[]): CompoundFilter {
   return {
     id: createId(),
     type: 'compound',
     enabled: false,
-    left: rowCount >= 1 ? 1 : null,
+    left: existing[0]?.id ?? null,
     cop: 'AND',
-    right: rowCount >= 2 ? 2 : null,
+    right: existing[1]?.id ?? null,
   }
 }
 

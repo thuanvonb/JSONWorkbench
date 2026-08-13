@@ -41,7 +41,7 @@ Ids from `createId()` are unique across workspaces *and* views, which is why the
 
 `App.tsx` owns the *ephemeral* UI state that is deliberately not persisted and not in the reducer: search text, modal open flags, parse error, inspector selection, popover state, rename draft. It wires everything together and is the only component that calls `dispatch`; child components take callbacks.
 
-Persistence lives in `src/lib/storage.ts` under key `json-workbench.v1`. `migrateWorkspace` there upgrades pre-tables saves (which kept `columns`/`filters`/`sort` at the workspace top level), and `normalizeFilter` in `src/lib/filters.ts` upgrades pre-panel filter rows (which were tagged `kind: 'col' | 'js'` and had no on/off flag) — keep both working when the shape changes again. Saved profiles carry the same filter shape, so `src/lib/profiles.ts` has its own normalizer for them.
+Persistence lives in `src/lib/storage.ts` under key `json-workbench.v1`. `migrateWorkspace` there upgrades pre-tables saves (which kept `columns`/`filters`/`sort` at the workspace top level), and `normalizeFilters` in `src/lib/filters.ts` upgrades filter rows saved before the filter panel (tagged `kind: 'col' | 'js'`, no on/off flag) re-points compound operands that were stored as row positions rather than ids, and maps renamed connectives (`THEREFORE` → `IMPLIES`) through `normalizeBoolOp`, which also floors an unreadable connective at `AND` rather than letting it reach the evaluator — keep all of that working when the shape changes again. Saved profiles carry the same rows, so `src/lib/profiles.ts` has its own normalizer; a profile stores compound operands *by position* on purpose, since it mints fresh ids on load.
 
 ### The render pipeline
 
@@ -56,7 +56,19 @@ Persistence lives in `src/lib/storage.ts` under key `json-workbench.v1`. `migrat
 - If the expression evaluates to a function (so `row => row.total` works as well as `row.total`), the result is applied to `(row, i)`.
 - Compile and runtime errors are folded into a `CellError` (`{ __err }`) sentinel that flows through the value pipeline and renders as `⚠ message`, rather than throwing.
 
-Related convention in `src/lib/filters.ts`: a filter that *cannot* be evaluated (unknown column, bad regex) returns `true` and keeps the row — a half-typed filter must never silently hide data. For the same reason a filter row is only applied once its `enabled` flag is switched on in the Filter tab, and new rows start off. `compound` rows (two rows joined by a boolean connective) are stored and edited but not evaluated yet; `isApplied` is the single place that decides what narrows the table.
+Related convention in `src/lib/filters.ts`: a filter that *cannot* be evaluated (unknown column, bad regex) returns `true` and keeps the row — a half-typed filter must never silently hide data.
+
+### Filter rows are a graph (`src/lib/filterTree.ts`)
+
+A view's `filters` is a flat list, but a `compound` row references two other rows *by id*, so the rows form a graph rather than a list that can be folded. `buildFilterPlan(filters)` resolves it once per filter change and is the only place that decides what narrows the table:
+
+- **roots** — the trees that run, ANDed together. A row is a root when it is `enabled` and nothing folded it in.
+- **consumed** — row id → the compound that folded it in. An enabled compound *consumes* its operands: they become sub-expressions and stop applying on their own (their own `enabled` flag is then irrelevant), which is the only reading under which `OR`, `XOR` and `NOR` do anything. The panel dims them and disables their flag.
+- **issues** — a row that cannot be resolved: a reference `cycle` (detected by the DFS stack while building, and flagged on every row in the cycle), an `unset-operand`, a `missing-operand` (the row was deleted), or a `broken-operand` (propagated). Such a row is left out of the plan entirely, so a half-built compound neither hides nor reveals rows, and it does not consume its operands either — they keep their own flags.
+
+`evaluateNode` walks one tree per row and short-circuits where the connective allows (`IMPLIES` is material implication, `!a || b`); `describePlan` renders the plan as `(#1 OR #2) AND #4` for the panel footer. New rows start off, for the same reason above.
+
+There is no test runner, so the tree logic was verified with a throwaway esbuild+node harness rather than a committed test file — worth rebuilding if the semantics change.
 
 ### Styling
 

@@ -1,4 +1,5 @@
 import type { TableView, Workspace } from '../types/workbench'
+import type { FilterIssueCode } from './filterTree'
 import type { Profile } from './profiles'
 import type { SchemaCounts } from './schema'
 
@@ -20,11 +21,31 @@ export function filterPanelMeta(total: number, applied: number): string {
   return `${total} rows · ${applied} applied`
 }
 
-/** Filter panel footer: what the rows add up to. */
-export function filterPanelFoot(compoundCount: number): string {
-  if (compoundCount === 0) return 'applied rows combine with AND'
-  const rows = compoundCount === 1 ? 'row' : 'rows'
-  return `${compoundCount} compound ${rows} saved — not evaluated yet`
+/** Filter panel footer: the expression the applied rows add up to. */
+export function filterPanelFoot(expression: string, issueCount: number): string {
+  const applied = expression ? `applied  ${expression}` : 'no rows applied'
+  if (issueCount === 0) return applied
+  const rows = issueCount === 1 ? 'row' : 'rows'
+  return `${issueCount} ${rows} in error · ${applied}`
+}
+
+/** Why one filter row cannot run, shown under the row itself. */
+export function filterIssueMessage(code: FilterIssueCode): string {
+  switch (code) {
+    case 'cycle':
+      return 'references itself through another row — ignored'
+    case 'unset-operand':
+      return 'pick both rows to combine — ignored'
+    case 'missing-operand':
+      return 'a referenced row is gone — ignored'
+    case 'broken-operand':
+      return 'a referenced row has an error — ignored'
+  }
+}
+
+/** What an operand row is folded into, for the disabled flag's tooltip. */
+export function foldedInto(position: number | undefined): string {
+  return `folded into #${position ?? '?'}`
 }
 
 /** Profiles list subtitle: what one saved setup holds. */

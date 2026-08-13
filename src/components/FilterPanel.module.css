@@ -98,6 +98,13 @@
   background: var(--bar);
 }
 
+/* Folded into a compound: still editable, but no longer applying on its own. */
+.rowFolded .select,
+.rowFolded .value,
+.rowFolded .ordinal {
+  opacity: 0.6;
+}
+
 .ordinal {
   text-align: right;
   font-family: var(--mono);
@@ -176,6 +183,11 @@
   color: var(--acc-fg);
 }
 
+.flag:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .remove {
   justify-self: center;
   display: flex;
@@ -196,6 +208,26 @@
 .remove:hover {
   background: var(--danger-bg-hover);
   color: var(--danger);
+}
+
+/* Second line of a row, spanning the whole grid. */
+.issue,
+.folded {
+  grid-column: 1 / -1;
+  padding: 1px 0 0 27px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.issue {
+  color: var(--danger-fg);
+}
+
+.folded {
+  color: var(--fg-faint);
 }
 
 .empty {

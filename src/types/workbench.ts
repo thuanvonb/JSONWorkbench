@@ -27,7 +27,7 @@ export type FilterOp =
   | 'regex'
 
 /** Boolean connective a compound filter row combines its two operands with. */
-export type BoolOp = 'AND' | 'OR' | 'XOR' | 'NAND' | 'NOR' | 'XNOR' | 'THEREFORE'
+export type BoolOp = 'AND' | 'OR' | 'XOR' | 'NAND' | 'NOR' | 'XNOR' | 'IMPLIES'
 
 interface FilterRow {
   id: string
@@ -48,14 +48,16 @@ export interface CustomFilter extends FilterRow {
 }
 
 /**
- * Combines two other filter rows, referenced by their 1-based row number.
- * Stored and edited, but not evaluated yet.
+ * Combines two other filter rows by id. The panel labels them `#1`, `#2` by
+ * position, but ids are what is stored, so deleting or reordering a row can
+ * never silently re-point a compound at a different condition.
  */
 export interface CompoundFilter extends FilterRow {
   type: 'compound'
-  left: number | null
+  /** Id of the operand row, or null while it is unset. */
+  left: string | null
   cop: BoolOp
-  right: number | null
+  right: string | null
 }
 
 export type Filter = SimpleFilter | CustomFilter | CompoundFilter
