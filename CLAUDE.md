@@ -39,7 +39,7 @@ Ids from `createId()` are unique across workspaces *and* views, which is why the
 
 `workbenchReducer` (`src/state/workbenchReducer.ts`) is the only place document state mutates. Two helpers, `patchActive` and `patchView`, do the immutable spread down to the active workspace / active view — new actions should go through them rather than hand-rolling the nesting.
 
-`App.tsx` owns the *ephemeral* UI state that is deliberately not persisted and not in the reducer: search text, modal open flags, parse error, inspector selection, popover state, rename draft. It wires everything together and is the only component that calls `dispatch`; child components take callbacks.
+`App.tsx` owns the *ephemeral* UI state that is deliberately not persisted and not in the reducer: search text, modal open flags, parse error, inspector selection, which panel tab is open (and which one the Panel button reopens on), the panel's dragged width, the schema tree's open branches, popover state, rename draft. Those shapes live in `src/types/ui.ts`. `App` wires everything together and is the only component that calls `dispatch`; child components take callbacks.
 
 Persistence lives in `src/lib/storage.ts` under key `json-workbench.v1`. `migrateWorkspace` there upgrades pre-tables saves (which kept `columns`/`filters`/`sort` at the workspace top level), and `normalizeFilters` in `src/lib/filters.ts` upgrades filter rows saved before the filter panel (tagged `kind: 'col' | 'js'`, no on/off flag) re-points compound operands that were stored as row positions rather than ids, and maps renamed connectives (`THEREFORE` → `IMPLIES`) through `normalizeBoolOp`, which also floors an unreadable connective at `AND` rather than letting it reach the evaluator — keep all of that working when the shape changes again. Saved profiles carry the same rows, so `src/lib/profiles.ts` has its own normalizer; a profile stores compound operands *by position* on purpose, since it mints fresh ids on load.
 
@@ -66,13 +66,27 @@ A view's `filters` is a flat list, but a `compound` row references two other row
 - **consumed** — row id → the compound that folded it in. An enabled compound *consumes* its operands: they become sub-expressions and stop applying on their own (their own `enabled` flag is then irrelevant), which is the only reading under which `OR`, `XOR` and `NOR` do anything. The panel dims them and disables their flag.
 - **issues** — a row that cannot be resolved: a reference `cycle` (detected by the DFS stack while building, and flagged on every row in the cycle), an `unset-operand`, a `missing-operand` (the row was deleted), or a `broken-operand` (propagated). Such a row is left out of the plan entirely, so a half-built compound neither hides nor reveals rows, and it does not consume its operands either — they keep their own flags.
 
-`evaluateNode` walks one tree per row and short-circuits where the connective allows (`IMPLIES` is material implication, `!a || b`); `describePlan` renders the plan as `(#1 OR #2) AND #4` for the panel footer. New rows start off, for the same reason above.
+`evaluateNode` walks one tree per row and short-circuits where the connective allows (`IMPLIES` is material implication, `!a || b`, and `NOT IMPLIES` its negation, `a && !b`); `describePlan` renders the plan as `(#1 OR #2) AND #4` for the panel footer. New rows start off, for the same reason above.
+
+A new connective has to be added in four places: the `BoolOp` union in `types/workbench.ts`, `BOOL_OPS` in `lib/filters.ts` (which is what the panel's dropdown lists), `combine` in `filterTree.ts`, and `settleOnLeft` there — the latter is where a connective declares whether the left operand alone can decide it, so omitting it only costs the short-circuit, never correctness.
 
 There is no test runner, so the tree logic was verified with a throwaway esbuild+node harness rather than a committed test file — worth rebuilding if the semantics change.
 
+### The right-hand panel
+
+`SidePanel` is a shell: a tab strip (`record` / `schema` / `columns` / `filter`, the `PanelTab` union), a resize grip, and whichever tab body `App` passes as children. It holds no tab state — `App` decides which one is showing, so closing and reopening the panel comes back to the same tab.
+
+Its width is the same deal: `App` holds it and `SidePanel` renders it, so a dragged width survives the panel being closed. `usePanelResize` (`src/hooks/usePanelResize.ts`) owns only the drag — it listens on `document` while the pointer is down (the pointer leaves the 7px grip immediately) and sets `body.wb-resizing` for the page-wide cursor and selection lock defined in `controls.css`. The bounds are pure and live in `src/lib/panelSize.ts`: `clampPanelWidth` keeps a floor for the panel *and* a floor for the remaining grid, with the panel's floor winning on a narrow window. Double-clicking the grip resets to `DEFAULT_PANEL_WIDTH`.
+
+### Inferred schema (`src/lib/schema.ts`)
+
+`buildSchema(rows)` walks the records into a tree of `SchemaContainer` / `SchemaKey`, counting for every key how often it appeared and which types it held; a key present on fewer records than its container was observed is *optional*, more than one type makes it *mixed*. Objects inside an array fold into the same child shape, so `items[].id` is described once rather than per element.
+
+`flattenSchema` turns that tree into the rows the panel renders, honouring the open-branch map and the optional-only toggle; `expandablePaths` feeds expand-all. Each row's add button puts the path on the table as a `path` column via `createPathColumn` (`lib/factories.ts`, also what `inferColumns` maps over), and `columnedPaths(columns)` is what tells the tree which keys are already shown so the button reads as spent.
+
 ### Styling
 
-CSS Modules per component (`Foo.tsx` + `Foo.module.css`), plus three globals imported by `src/styles/global.css`:
+CSS Modules per component (`Foo.tsx` + `Foo.module.css`), plus two globals imported by `src/styles/global.css`:
 
 - `tokens.css` — every colour as a semantic `--var` in oklch. Components must not hardcode colours; add a token instead.
 - `controls.css` — shared button primitives, prefixed `wb-` to stay distinct from module class names.
@@ -85,6 +99,7 @@ Class names are composed with `cx()` from `src/lib/cx.ts`.
 
 ## Conventions
 
-- Pure logic goes in `src/lib/*` as standalone functions taking plain data; components stay presentational and receive callbacks. Follow this when adding features — e.g. label strings live in `lib/labels.ts`, popover positioning math in `lib/popover.ts`.
+- Pure logic goes in `src/lib/*` as standalone functions taking plain data; components stay presentational and receive callbacks. Follow this when adding features — e.g. label strings live in `lib/labels.ts`, popover positioning math in `lib/popover.ts`, panel width bounds in `lib/panelSize.ts`.
+- `src/hooks/*` is for the leftover browser behaviour that cannot be pure — document-level listeners and their cleanup (`useEscapeKey`, `usePanelResize`). The numbers such a hook works with still belong in `lib/`.
 - `verbatimModuleSyntax` is on: type-only imports must use `import type`.
 - Overlays (modals, popovers) use `useEscapeKey` and the `stopPropagation`/`isolate` helpers in `lib/events.ts` to keep clicks off the closing scrim.
