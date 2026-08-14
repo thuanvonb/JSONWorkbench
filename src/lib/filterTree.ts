@@ -4,7 +4,7 @@ import type {
   CompoundFilter,
   CustomFilter,
   Filter,
-  Row,
+  RowRef,
   SimpleFilter,
 } from '../types/workbench'
 import { passesFilter } from './filters'
@@ -112,14 +112,14 @@ export function buildFilterPlan(filters: Filter[]): FilterPlan {
 }
 
 /** Runs one tree against a row. Leaves keep the "cannot evaluate → keep the row" rule. */
-export function evaluateNode(node: FilterNode, row: Row, i: number, columns: Column[]): boolean {
-  if (node.kind === 'leaf') return passesFilter(node.filter, row, i, columns)
+export function evaluateNode(node: FilterNode, ref: RowRef, columns: Column[]): boolean {
+  if (node.kind === 'leaf') return passesFilter(node.filter, ref, columns)
 
-  const left = evaluateNode(node.left, row, i, columns)
+  const left = evaluateNode(node.left, ref, columns)
   const settled = settleOnLeft(node.filter.cop, left)
   if (settled !== null) return settled
 
-  return combine(node.filter.cop, left, evaluateNode(node.right, row, i, columns))
+  return combine(node.filter.cop, left, evaluateNode(node.right, ref, columns))
 }
 
 /** The result when the left side alone decides it, so the right side can be skipped. */

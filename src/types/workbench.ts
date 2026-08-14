@@ -3,14 +3,38 @@ export type Row = unknown
 
 export type ColumnKind = 'path' | 'js'
 
-export interface Column {
+/**
+ * What a path column does when it crosses an array on the way to its value.
+ * `'expand'` is the odd one out: it does not resolve the array at all, it puts
+ * the array on the table's grain so every entry gets its own row.
+ */
+export type ArrayMode = 'first' | 'index' | 'join' | 'count' | 'expand'
+
+/** The array handling of a column, or of the draft in the column popover. */
+export interface ArrayConfig {
+  arrayMode?: ArrayMode | null
+  /** Entry read when `arrayMode === 'index'`. */
+  arrayIndex?: number
+  /** Separator used when `arrayMode === 'join'`. */
+  joinSep?: string
+}
+
+export interface Column extends ArrayConfig {
   id: string
   name: string
   kind: ColumnKind
   /** Dot/bracket path into the row. Used when `kind === 'path'`. */
   path?: string
-  /** Expression evaluated with `row` and `i` in scope. Used when `kind === 'js'`. */
+  /** Expression evaluated with `row`, `i` and `item` in scope. Used when `kind === 'js'`. */
   code?: string
+}
+
+/**
+ * One array the table expands into rows. `path` is relative to the level above,
+ * so the levels read as a chain: `orders` then `lines` means `orders[].lines[]`.
+ */
+export interface GrainLevel {
+  path: string
 }
 
 export type FilterOp =
@@ -78,6 +102,10 @@ export interface TableView {
   columns: Column[]
   filters: Filter[]
   sort: Sort | null
+  /** Arrays expanded into rows, outermost first. Empty means one row per record. */
+  grain: GrainLevel[]
+  /** Keep a record whose expanded array is empty, as one row with blank cells. */
+  keepEmpty: boolean
 }
 
 /** A set of records plus every table built on them. */
@@ -90,13 +118,28 @@ export interface Workspace {
   viewId: string
 }
 
-/** A row paired with its index in the unfiltered record list. */
+/**
+ * One table row: the record it came from, plus where inside it the row sits once
+ * the view's grain has expanded its arrays.
+ */
 export interface RowRef {
   row: Row
+  /** Index in the unfiltered record list, which the inspector and `#` refer to. */
   i: number
+  /** Value at each grain level; `scopes[0]` is the record itself. */
+  scopes: unknown[]
+  /** Array entry picked at each grain level. Empty when the view has no grain. */
+  idx: number[]
+  /** The view's absolute grain paths, so a cell can resolve without them passed in. */
+  abs: string[]
+  /** Identifies the row across renders: the record index plus its entry indexes. */
+  key: string
 }
 
-export type Inspect = { kind: 'row'; i: number } | { kind: 'cell'; i: number; colId: string }
+/** A selection is keyed by row, since one record can now hold several rows. */
+export type Inspect =
+  | { kind: 'row'; key: string; i: number }
+  | { kind: 'cell'; key: string; i: number; colId: string }
 
 export type Density = 'compact' | 'balanced' | 'roomy'
 

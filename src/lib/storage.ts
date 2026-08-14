@@ -1,4 +1,4 @@
-import type { DisplaySettings, TableView, Workspace } from '../types/workbench'
+import type { DisplaySettings, GrainLevel, TableView, Workspace } from '../types/workbench'
 import { DEFAULT_DISPLAY } from '../types/workbench'
 import { createView } from './factories'
 import { normalizeFilters } from './filters'
@@ -77,6 +77,15 @@ export function saveProfiles(profiles: Profile[]): void {
 /** Legacy workspaces kept columns/filters/sort at the top level, before tables existed. */
 type LegacyWorkspace = Workspace & Partial<Pick<TableView, 'columns' | 'filters' | 'sort'>>
 
+/** Grain levels as they may sit in localStorage, from before the grain existed. */
+function migrateGrain(input: unknown): GrainLevel[] {
+  if (!Array.isArray(input)) return []
+  return input
+    .map((level) => (level as Partial<GrainLevel>)?.path)
+    .filter((path): path is string => typeof path === 'string' && path !== '')
+    .map((path) => ({ path }))
+}
+
 function migrateWorkspace(input: unknown): Workspace {
   const saved = (input ?? {}) as Partial<LegacyWorkspace>
   const workspace: Workspace = {
@@ -100,7 +109,10 @@ function migrateWorkspace(input: unknown): Workspace {
   return workspace
 }
 
-/** Filter rows changed shape when the filter panel replaced the pills. */
+/**
+ * Filter rows changed shape when the filter panel replaced the pills, and views
+ * saved before arrays could be expanded carry no grain at all.
+ */
 function migrateView(input: unknown): TableView {
   const saved = (input ?? {}) as Partial<TableView>
   return {
@@ -109,5 +121,7 @@ function migrateView(input: unknown): TableView {
     columns: Array.isArray(saved.columns) ? saved.columns : [],
     filters: normalizeFilters(saved.filters),
     sort: saved.sort ?? null,
+    grain: migrateGrain(saved.grain),
+    keepEmpty: saved.keepEmpty !== false,
   }
 }

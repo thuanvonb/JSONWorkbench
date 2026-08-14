@@ -25,7 +25,7 @@ A three-level hierarchy that the whole app hangs off:
 
 ```
 Workspace  — one pasted JSON payload: raw text + parsed rows[]
-  └─ TableView[]  ("tables") — columns + filters + sort over those same rows
+  └─ TableView[]  ("tables") — columns + filters + sort + grain over those same rows
        └─ Column — kind 'path' (dot/bracket path) or kind 'js' (expression)
 ```
 
@@ -41,19 +41,34 @@ Ids from `createId()` are unique across workspaces *and* views, which is why the
 
 `App.tsx` owns the *ephemeral* UI state that is deliberately not persisted and not in the reducer: search text, modal open flags, parse error, inspector selection, which panel tab is open (and which one the Panel button reopens on), the panel's dragged width, the schema tree's open branches, popover state, rename draft. Those shapes live in `src/types/ui.ts`. `App` wires everything together and is the only component that calls `dispatch`; child components take callbacks.
 
-Persistence lives in `src/lib/storage.ts` under key `json-workbench.v1`. `migrateWorkspace` there upgrades pre-tables saves (which kept `columns`/`filters`/`sort` at the workspace top level), and `normalizeFilters` in `src/lib/filters.ts` upgrades filter rows saved before the filter panel (tagged `kind: 'col' | 'js'`, no on/off flag) re-points compound operands that were stored as row positions rather than ids, and maps renamed connectives (`THEREFORE` → `IMPLIES`) through `normalizeBoolOp`, which also floors an unreadable connective at `AND` rather than letting it reach the evaluator — keep all of that working when the shape changes again. Saved profiles carry the same rows, so `src/lib/profiles.ts` has its own normalizer; a profile stores compound operands *by position* on purpose, since it mints fresh ids on load.
+Persistence lives in `src/lib/storage.ts` under key `json-workbench.v1`. `migrateWorkspace` there upgrades pre-tables saves (which kept `columns`/`filters`/`sort` at the workspace top level), and `normalizeFilters` in `src/lib/filters.ts` upgrades filter rows saved before the filter panel (tagged `kind: 'col' | 'js'`, no on/off flag) re-points compound operands that were stored as row positions rather than ids, and maps renamed connectives (`THEREFORE` → `IMPLIES`) through `normalizeBoolOp`, which also floors an unreadable connective at `AND` rather than letting it reach the evaluator — keep all of that working when the shape changes again. Saved profiles carry the same rows, so `src/lib/profiles.ts` has its own normalizer; a profile stores compound operands *by position* on purpose, since it mints fresh ids on load. `migrateView` and the profile loader both default a missing `grain` to `[]` and a missing `keepEmpty` to `true`, so anything saved before arrays could be expanded still opens as one row per record — the grain is pure paths, which is why a profile can carry it verbatim while everything else in a profile has to be re-pointed by name.
 
 ### The render pipeline
 
-`selectRows(workspace, view, search)` in `src/lib/rows.ts` is the hot path: filters → global search → sort, producing `RowRef[]` (`{ row, i }` — `i` is the index in the *unfiltered* list, so the inspector and the `#` column always refer to the original record). `App` then slices to `display.maxRows` for rendering; the status bar reports both counts.
+`expandRows(rows, view)` (`src/lib/grain.ts`) turns the records into the table's rows — one per record, or one per array entry once the view has a grain — and `selectRows(rows, view, search)` in `src/lib/rows.ts` is the hot path over them: filters → global search → sort. `App` holds both, so `expanded.length` is the row total the status bar reports against, and then slices to `display.maxRows` for rendering.
 
-`cellValue(col, row, i)` (`src/lib/cell.ts`) resolves a cell either by path or by evaluating the column's expression, and `formatCell` turns any value into `{ text, variant }` — the CSS owns the look, not the formatter.
+A `RowRef` is one table row, not one record: `i` is still the index in the *unfiltered* record list, so the inspector always resolves the original record, while `scopes`/`idx`/`abs` say where inside it the row sits and `key` identifies the row itself (`"2:1.0"`). Selections are keyed by `key`, since one record can now hold several rows.
+
+`cellValue(col, ref)` (`src/lib/cell.ts`) resolves a cell either by path — from the grain level the path sits under — or by evaluating the column's expression, and `formatCell` turns any value into `{ text, variant }` — the CSS owns the look, not the formatter. `toSearchText` and `safeStringify` live in `src/lib/text.ts` rather than next to `formatCell`, so `grain.ts` can flatten join results without importing `cell.ts` back.
+
+### Row grain (`src/lib/grain.ts`)
+
+A view's `grain` is the list of arrays it expands into rows — `[{path:'orders'},{path:'lines'}]` means one row per `orders[].lines[]` entry, each level's path stored *relative* to the one above. `expandRows` walks it into a `RowRef` per combination of entries; `keepEmpty` decides whether a record whose array is empty still gets one row with blank cells below that level. Nothing else in the app needs to know a grain exists: filters, search, sort, CSV and the aggregates all take a `RowRef`.
+
+Everything hangs off two pure functions:
+
+- `scopeForPath(path, absolutePaths)` — the deepest grain level a column path sits under, and what is left of the path below it. That is why `orders.lines.sku` reads as `sku` against the line the row came from, with no rewriting of the column itself: dropping the grain makes the same column resolve from the record again.
+- `resolveValue(base, rest, config)` — reads that remainder, resolving any array it *still* crosses per the column's `arrayMode` (`first`, `index`, `join`, `count`). An explicit `[2]` in the path always wins over the mode, and a path ending *on* an array is handled separately from one crossing it.
+
+`arrayMode: 'expand'` is the odd one out — it is not a way of resolving an array, it is a request to put that array on the grain, so it never reaches `resolveValue`. `effectiveArrayMode` is where that reconciles: a column already inside an expanded level reads as `expand` whatever it stored, and a column still crossing an array reads a stored `expand` as `first`. Picking a mode in the popover therefore applies *at once* rather than on Apply (`patchColumnArray` in `App`), because expanding an array changes every row on screen, not one column.
+
+`columnGrains(rows, view)` runs that per column for the header badges, and gives `DataTable` the level it needs to dim cells that merely repeat the row above (`isRepeatedCell`). Where a column meets an array is *sampled* from the first 40 records, so it is a description of the data, never a constraint on it.
 
 ### User-supplied JavaScript
 
-`src/lib/expression.ts` compiles `js` columns and `custom` filter rows with `new Function('row', 'i', ...)`, cached by source string. This is intentional: it's the product feature, and the code only ever touches data the user pasted into their own browser. Two behaviours to preserve:
+`src/lib/expression.ts` compiles `js` columns and `custom` filter rows with `new Function('row', 'i', 'item', ...)`, cached by source string. `row` is always the whole record and `item` the array entry the row was expanded from — the same thing when the view has no grain. This is intentional: it's the product feature, and the code only ever touches data the user pasted into their own browser. Two behaviours to preserve:
 
-- If the expression evaluates to a function (so `row => row.total` works as well as `row.total`), the result is applied to `(row, i)`.
+- If the expression evaluates to a function (so `row => row.total` works as well as `row.total`), the result is applied to `(row, i, item)`.
 - Compile and runtime errors are folded into a `CellError` (`{ __err }`) sentinel that flows through the value pipeline and renders as `⚠ message`, rather than throwing.
 
 Related convention in `src/lib/filters.ts`: a filter that *cannot* be evaluated (unknown column, bad regex) returns `true` and keeps the row — a half-typed filter must never silently hide data.
@@ -71,6 +86,10 @@ A view's `filters` is a flat list, but a `compound` row references two other row
 A new connective has to be added in four places: the `BoolOp` union in `types/workbench.ts`, `BOOL_OPS` in `lib/filters.ts` (which is what the panel's dropdown lists), `combine` in `filterTree.ts`, and `settleOnLeft` there — the latter is where a connective declares whether the left operand alone can decide it, so omitting it only costs the short-circuit, never correctness.
 
 There is no test runner, so the tree logic was verified with a throwaway esbuild+node harness rather than a committed test file — worth rebuilding if the semantics change.
+
+### The grain bar
+
+`GrainBar` is the strip above the table saying what one row is (`1 row per record ▸ items[]`). It only appears once something is expanded — a grain *starts* in the column popover, since that is where the user is looking at the array. Its chips walk the grain back (`grain/trim`), `nextGrainKey` offers the next array below the deepest level, and the keep-empty toggle is the same flag the expansion reads. It lives inside `App`'s grid column above the scroller, so it stays put while the table scrolls.
 
 ### The right-hand panel
 

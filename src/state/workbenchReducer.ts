@@ -1,4 +1,5 @@
 import { createView, createWorkspace, duplicateView } from '../lib/factories'
+import { appendGrain } from '../lib/grain'
 import type { Column, Filter, Row, TableView, Workspace } from '../types/workbench'
 
 export interface WorkbenchState {
@@ -26,6 +27,11 @@ export type WorkbenchAction =
   /** Swaps the whole column set, as "Infer table" does. */
   | { type: 'columns/replace'; columns: Column[] }
   | { type: 'sort/toggle'; colId: string }
+  /** Expands an array into rows. `path` is absolute; `level` is where to graft it on. */
+  | { type: 'grain/expand'; path: string; level: number }
+  /** Stops expanding from this level down. */
+  | { type: 'grain/trim'; level: number }
+  | { type: 'grain/keepEmpty' }
   | { type: 'filter/add'; filter: Filter }
   /** Replaces one filter row with an edited copy of itself. */
   | { type: 'filter/update'; filter: Filter }
@@ -143,6 +149,15 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
               : null
             : { colId: action.colId, dir: 'asc' },
       }))
+
+    case 'grain/expand':
+      return patchView(state, (v) => ({ grain: appendGrain(v.grain, action.path, action.level) }))
+
+    case 'grain/trim':
+      return patchView(state, (v) => ({ grain: v.grain.slice(0, action.level) }))
+
+    case 'grain/keepEmpty':
+      return patchView(state, (v) => ({ keepEmpty: !v.keepEmpty }))
 
     case 'filter/add':
       return patchView(state, (v) => ({ filters: [...v.filters, action.filter] }))

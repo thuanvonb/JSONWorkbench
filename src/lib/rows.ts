@@ -1,19 +1,24 @@
-import type { RowRef, TableView, Workspace } from '../types/workbench'
-import { cellValue, toSearchText } from './cell'
+import type { RowRef, TableView } from '../types/workbench'
+import { cellValue } from './cell'
 import { buildFilterPlan, evaluateNode } from './filterTree'
+import { toSearchText } from './text'
 
-/** Applies the view's filters, the global search box, then the sort. */
-export function selectRows(workspace: Workspace, view: TableView, search: string): RowRef[] {
+/**
+ * Applies the view's filters, the global search box, then the sort. The rows
+ * come in already expanded by the view's grain (`expandRows` in `lib/grain.ts`),
+ * so everything here works one table row at a time.
+ */
+export function selectRows(rows: RowRef[], view: TableView, search: string): RowRef[] {
   const query = search.trim().toLowerCase()
-  let out: RowRef[] = workspace.rows.map((row, i) => ({ row, i }))
+  let out = rows
 
   for (const root of buildFilterPlan(view.filters).roots) {
-    out = out.filter((r) => evaluateNode(root, r.row, r.i, view.columns))
+    out = out.filter((r) => evaluateNode(root, r, view.columns))
   }
 
   if (query) {
     out = out.filter((r) =>
-      view.columns.some((c) => toSearchText(cellValue(c, r.row, r.i)).toLowerCase().includes(query)),
+      view.columns.some((c) => toSearchText(cellValue(c, r)).toLowerCase().includes(query)),
     )
   }
 
@@ -23,8 +28,8 @@ export function selectRows(workspace: Workspace, view: TableView, search: string
     if (col) {
       const dir = sort.dir === 'desc' ? -1 : 1
       out = out.slice().sort((x, y) => {
-        const a = cellValue(col, x.row, x.i)
-        const b = cellValue(col, y.row, y.i)
+        const a = cellValue(col, x)
+        const b = cellValue(col, y)
         if (typeof a === 'number' && typeof b === 'number') return (a - b) * dir
         const sa = a == null ? '' : String(a)
         const sb = b == null ? '' : String(b)
@@ -50,11 +55,11 @@ export function computeAggregates(view: TableView, rows: RowRef[]): Aggregate[] 
   if (!first) return []
 
   return view.columns
-    .filter((c) => typeof cellValue(c, first.row, first.i) === 'number')
+    .filter((c) => typeof cellValue(c, first) === 'number')
     .slice(0, MAX_AGGREGATES)
     .map((col) => {
       const nums = rows
-        .map((r) => cellValue(col, r.row, r.i))
+        .map((r) => cellValue(col, r))
         .filter((v): v is number => typeof v === 'number' && Number.isFinite(v))
       const sum = nums.reduce((a, b) => a + b, 0)
       const mean = nums.length ? sum / nums.length : 0

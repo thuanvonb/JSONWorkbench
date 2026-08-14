@@ -97,7 +97,33 @@ a:hover { color:oklch(0.48 0.17 259); }
   </div>
 
   <div style="flex:1; min-height:0; display:flex;">
-    <div style="flex:1; min-width:0; overflow:auto; background:oklch(0.995 0.003 80);">
+    <div style="flex:1; min-width:0; min-height:0; display:flex; flex-direction:column;">
+      <sc-if value="{{ grainOn }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:none; display:flex; align-items:center; gap:8px; height:32px; padding:0 12px; background:oklch(0.972 0.014 259); border-bottom:1px solid oklch(0.88 0.03 259); white-space:nowrap; overflow-x:auto;">
+          <span style="flex:none; white-space:nowrap; font-family:'JetBrains Mono',monospace; font-size:10.5px; color:oklch(0.55 0.012 62);">1 row per</span>
+          <span style="flex:none; white-space:nowrap; font-family:'JetBrains Mono',monospace; font-size:11px; padding:3px 7px; border-radius:4px; background:oklch(0.995 0.003 80); border:1px solid oklch(0.89 0.008 78); color:oklch(0.5 0.012 62);">record</span>
+          <sc-for list="{{ grainChips }}" as="g" hint-placeholder-count="1">
+            <span style="flex:none; display:flex; align-items:center; gap:8px; white-space:nowrap;">
+              <span style="flex:none; font-size:9px; color:oklch(0.65 0.012 65);">▸</span>
+              <span style="flex:none; display:flex; align-items:center; gap:6px; white-space:nowrap; font-family:'JetBrains Mono',monospace; font-size:11px; padding:3px 7px; border-radius:4px; background:oklch(0.93 0.045 259); border:1px solid oklch(0.85 0.06 259); color:oklch(0.4 0.12 259);">
+                <span>{{ g.label }}</span>
+                <span onClick="{{ g.onRemove }}" title="{{ g.removeTitle }}" style="cursor:pointer; color:oklch(0.55 0.09 259); font-size:12px; line-height:1;" style-hover="color:oklch(0.4 0.15 25);">×</span>
+              </span>
+            </span>
+          </sc-for>
+          <sc-if value="{{ hasNextGrain }}" hint-placeholder-val="{{ false }}">
+            <span onClick="{{ addNextGrain }}" title="Also expand the nested array" style="flex:none; cursor:pointer; white-space:nowrap; font-family:'JetBrains Mono',monospace; font-size:10.5px; padding:3px 7px; border-radius:4px; border:1px dashed oklch(0.82 0.03 259); color:oklch(0.58 0.04 259);" style-hover="border-color:oklch(0.6 0.12 259); color:oklch(0.42 0.12 259);">{{ nextGrainLabel }}</span>
+          </sc-if>
+          <span style="margin-left:auto; flex:none; display:flex; align-items:center; gap:14px; white-space:nowrap;">
+            <span onClick="{{ toggleKeepEmpty }}" title="Keep records whose array is empty, with blank cells" style="flex:none; display:flex; align-items:center; gap:5px; cursor:pointer; white-space:nowrap; font-family:'JetBrains Mono',monospace; font-size:10px; color:oklch(0.5 0.012 62);">
+              <span style="flex:none; width:8px; color:{{ keepEmptyFg }};">{{ keepEmptyMark }}</span>
+              <span>keep empty rows</span>
+            </span>
+            <span style="flex:none; white-space:nowrap; font-family:'JetBrains Mono',monospace; font-size:10px; color:oklch(0.5 0.012 62);">{{ grainCount }}</span>
+          </span>
+        </div>
+      </sc-if>
+      <div style="flex:1; min-height:0; overflow:auto; background:oklch(0.995 0.003 80);">
       <sc-if value="{{ hasRows }}" hint-placeholder-val="{{ true }}">
         <table style="border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; font-size:12px;">
           <thead style="position:sticky; top:0; z-index:3;">
@@ -110,6 +136,9 @@ a:hover { color:oklch(0.48 0.17 259); }
                     <span style="font-size:9px; color:oklch(0.58 0.17 259); width:7px;">{{ col.arrow }}</span>
                     <sc-if value="{{ col.isJs }}" hint-placeholder-val="{{ false }}">
                       <span title="Computed column" style="font-family:'JetBrains Mono',monospace; font-size:8.5px; padding:1px 4px; border-radius:3px; background:oklch(0.94 0.035 259); color:oklch(0.48 0.14 259);">fn</span>
+                    </sc-if>
+                    <sc-if value="{{ col.hasArrayBadge }}" hint-placeholder-val="{{ false }}">
+                      <span title="{{ col.arrayTitle }}" style="flex:none; white-space:nowrap; font-family:'JetBrains Mono',monospace; font-size:8.5px; padding:1px 4px; border-radius:3px; background:{{ col.arrayBadgeBg }}; color:{{ col.arrayBadgeFg }};">{{ col.arrayBadge }}</span>
                     </sc-if>
                     <span onClick="{{ col.onEdit }}" title="Edit column" style="margin-left:auto; cursor:pointer; width:16px; height:16px; display:flex; align-items:center; justify-content:center; border-radius:3px; font-size:12px; color:oklch(0.66 0.012 65);" style-hover="background:oklch(0.89 0.01 78); color:oklch(0.29 0.012 60);">⋯</span>
                   </div>
@@ -124,7 +153,7 @@ a:hover { color:oklch(0.48 0.17 259); }
           <tbody>
             <sc-for list="{{ rows }}" as="row" hint-placeholder-count="8">
               <tr style="background:{{ row.bg }};" style-hover="background:oklch(0.972 0.012 259);">
-                <td onClick="{{ row.onIndex }}" title="Inspect full record" style="cursor:pointer; position:sticky; left:0; z-index:1; background:{{ row.bg }}; border-bottom:1px solid oklch(0.935 0.006 78); border-right:1px solid oklch(0.92 0.007 78); padding:{{ padY }}px 8px; text-align:right; font-family:'JetBrains Mono',monospace; font-size:10px; color:oklch(0.72 0.012 65); vertical-align:top;">{{ row.n }}</td>
+                <td onClick="{{ row.onIndex }}" title="Inspect full record" style="cursor:pointer; position:sticky; left:0; z-index:1; background:{{ row.bg }}; border-bottom:1px solid oklch(0.935 0.006 78); border-right:1px solid oklch(0.92 0.007 78); padding:{{ padY }}px 8px; text-align:right; font-family:'JetBrains Mono',monospace; font-size:10px; color:{{ row.nFg }}; vertical-align:top;">{{ row.n }}</td>
                 <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="4">
                   <td onClick="{{ cell.onClick }}" style="cursor:pointer; background:{{ cell.bg }}; border-bottom:1px solid oklch(0.935 0.006 78); border-right:1px solid oklch(0.955 0.005 78); padding:{{ padY }}px 8px; vertical-align:top; max-width:420px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:{{ cell.align }}; font-family:{{ cell.ff }}; font-size:{{ cell.fs }}px; color:{{ cell.fg }}; font-style:{{ cell.fst }};">{{ cell.text }}</td>
                 </sc-for>
@@ -145,6 +174,7 @@ a:hover { color:oklch(0.48 0.17 259); }
           </div>
         </div>
       </sc-if>
+      </div>
     </div>
 
     <sc-if value="{{ panelOpen }}" hint-placeholder-val="{{ false }}">
@@ -427,6 +457,23 @@ a:hover { color:oklch(0.48 0.17 259); }
                 </div>
               </div>
             </sc-if>
+            <sc-if value="{{ draftHasArray }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:oklch(0.62 0.012 65);">Array — <span style="font-family:'JetBrains Mono',monospace; text-transform:none; font-size:10.5px;">{{ draftArrayLabel }}</span></label>
+                <div style="border:1px solid oklch(0.91 0.008 78); border-radius:5px; background:oklch(0.98 0.004 80); overflow:hidden;">
+                  <sc-for list="{{ arrayModes }}" as="m" hint-placeholder-count="5">
+                    <div onClick="{{ m.onPick }}" style="display:flex; align-items:center; gap:9px; padding:5px 9px; cursor:pointer; background:{{ m.bg }}; color:{{ m.fg }}; font-weight:{{ m.fw }};" style-hover="background:oklch(0.955 0.03 259);">
+                      <span style="flex:none; width:9px; font-size:9px;">{{ m.dot }}</span>
+                      <span style="font-size:11.5px;">{{ m.name }}</span>
+                      <sc-if value="{{ m.hasInput }}" hint-placeholder-val="{{ false }}">
+                        <input value="{{ m.inputValue }}" onChange="{{ m.onInput }}" onClick="{{ stop }}" style="margin-left:auto; width:54px; padding:1px 5px; font-family:'JetBrains Mono',monospace; font-size:10.5px; border:1px solid oklch(0.89 0.008 78); border-radius:3px; outline:none; background:oklch(0.995 0.003 80);" style-focus="border-color:oklch(0.58 0.17 259);" />
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="font-size:10px; line-height:1.5; color:oklch(0.58 0.012 62);">{{ draftArrayHint }}</div>
+              </div>
+            </sc-if>
             <sc-if value="{{ draftIsJs }}" hint-placeholder-val="{{ false }}">
               <div style="display:flex; flex-direction:column; gap:4px;">
                 <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:oklch(0.62 0.012 65);">Expression — <span style="font-family:'JetBrains Mono',monospace; text-transform:none;">row</span>, <span style="font-family:'JetBrains Mono',monospace; text-transform:none;">i</span> in scope</label>
@@ -503,7 +550,9 @@ class Component extends DCLogic {
   snapshotViews(w) {
     return w.views.map(v => ({
       name: v.name,
-      columns: v.columns.map(c => ({ name: c.name, kind: c.kind, path: c.path, code: c.code })),
+      columns: v.columns.map(c => ({ name: c.name, kind: c.kind, path: c.path, code: c.code, arrayMode: c.arrayMode, arrayIndex: c.arrayIndex, joinSep: c.joinSep })),
+      grain: (v.grain || []).map(g => ({ path: g.path })),
+      keepEmpty: v.keepEmpty !== false,
       filters: v.filters.map(f => Object.assign({}, f)),
       sortColName: v.sort ? (v.columns.find(c => c.id === v.sort.colId) || {}).name : null,
       sortDir: v.sort ? v.sort.dir : null
@@ -521,7 +570,7 @@ class Component extends DCLogic {
         return nf;
       });
       const sortId = v.sortColName ? byName[v.sortColName] : null;
-      return { id: this.uid(), name: v.name || 'Table 1', columns: columns, filters: filters, sort: sortId ? { colId: sortId, dir: v.sortDir || 'asc' } : null };
+      return { id: this.uid(), name: v.name || 'Table 1', columns: columns, filters: filters, grain: (v.grain || []).map(g => ({ path: g.path })), keepEmpty: v.keepEmpty !== false, sort: sortId ? { colId: sortId, dir: v.sortDir || 'asc' } : null };
     });
   }
 
@@ -584,17 +633,17 @@ class Component extends DCLogic {
   }
 
   makeWorkspace(name, rows) {
-    const v = { id: this.uid(), name: 'Table 1', columns: [], filters: [], sort: null };
+    const v = { id: this.uid(), name: 'Table 1', columns: [], filters: [], sort: null, grain: [], keepEmpty: true };
     return { id: this.uid(), name: name || 'Workspace', raw: rows ? JSON.stringify(rows, null, 2) : '', rows: rows || [], views: [v], viewId: v.id };
   }
 
   migrate(w) {
     const o = Object.assign({ raw: '', rows: [] }, w);
     if (!o.views || !o.views.length) {
-      const v = { id: this.uid(), name: 'Table 1', columns: o.columns || [], filters: o.filters || [], sort: o.sort || null };
+      const v = { id: this.uid(), name: 'Table 1', columns: o.columns || [], filters: o.filters || [], sort: o.sort || null, grain: [], keepEmpty: true };
       o.views = [v]; o.viewId = v.id;
     }
-    o.views = o.views.map(v => Object.assign({}, v, { filters: (v.filters || []).map(f => this.normFilter(f)) }));
+    o.views = o.views.map(v => Object.assign({ grain: [], keepEmpty: true }, v, { grain: v.grain || [], filters: (v.filters || []).map(f => this.normFilter(f)) }));
     if (!o.views.find(v => v.id === o.viewId)) o.viewId = o.views[0].id;
     delete o.columns; delete o.filters; delete o.sort;
     return o;
@@ -642,6 +691,138 @@ class Component extends DCLogic {
     for (const p of parts) {
       if (cur === null || cur === undefined) return undefined;
       cur = cur[p];
+    }
+    return cur;
+  }
+
+  // ---------- row grain (array expansion) ----------
+  grainOf(v) { return (v && v.grain) ? v.grain : []; }
+
+  grainAbs(grain) {
+    const out = []; let pre = '';
+    (grain || []).forEach(g => { pre = pre ? pre + '.' + g.path : g.path; out.push(pre); });
+    return out;
+  }
+
+  segs(path) { return String(path || '').replace(/\[(\d+)\]/g, '.$1').split('.').filter(s => s !== ''); }
+
+  scopeForPath(path, abs) {
+    let lvl = -1;
+    for (let k = 0; k < (abs || []).length; k++) {
+      const p = abs[k];
+      if (path === p || String(path).indexOf(p + '.') === 0) lvl = k;
+    }
+    if (lvl < 0) return { level: 0, rest: path || '' };
+    const p = abs[lvl];
+    return { level: lvl + 1, rest: path === p ? '' : String(path).slice(p.length + 1) };
+  }
+
+  // first array met while resolving `rest` from `base`; returns its relative path or null
+  firstArrayIn(base, rest) {
+    let cur = base;
+    if (Array.isArray(cur)) return '';
+    const parts = this.segs(rest), pre = [];
+    for (const s of parts) {
+      if (cur === null || cur === undefined || typeof cur !== 'object') return null;
+      cur = cur[s]; pre.push(s);
+      if (Array.isArray(cur)) return pre.join('.');
+    }
+    return null;
+  }
+
+  sampleScope(rows, grain, level) {
+    for (const r of (rows || []).slice(0, 40)) {
+      let cur = r, ok = true;
+      for (let L = 0; L < level; L++) {
+        const arr = this.getPath(cur, grain[L].path);
+        if (Array.isArray(arr) && arr.length) cur = arr[0]; else { ok = false; break; }
+      }
+      if (ok) return cur;
+    }
+    return null;
+  }
+
+  // where a column crosses an array, relative to its own scope
+  arrayInfoFor(rows, v, path) {
+    if (!path) return null;
+    const grain = this.grainOf(v);
+    const abs = this.grainAbs(grain);
+    const s = this.scopeForPath(path, abs);
+    const base = this.sampleScope(rows, grain, s.level);
+    if (base === null || base === undefined) return null;
+    const rel = this.firstArrayIn(base, s.rest);
+    if (rel === null) return null;
+    const prefix = s.level > 0 ? abs[s.level - 1] : '';
+    return {
+      level: s.level,
+      rel: rel,
+      abs: rel === '' ? prefix : (prefix ? prefix + '.' + rel : rel),
+      label: (rel === '' ? (prefix.split('.').slice(-1)[0] || prefix) : rel.split('.').slice(-1)[0]) + '[]'
+    };
+  }
+
+  nextGrainCandidate(rows, v) {
+    const grain = this.grainOf(v);
+    if (!grain.length) return null;
+    const base = this.sampleScope(rows, grain, grain.length);
+    if (!base || typeof base !== 'object' || Array.isArray(base)) return null;
+    const k = Object.keys(base).find(x => Array.isArray(base[x]));
+    return k || null;
+  }
+
+  expandRow(record, i, grain, keepEmpty) {
+    let ctxs = [{ scopes: [record], idx: [], blank: false }];
+    for (let L = 0; L < grain.length; L++) {
+      const next = [];
+      ctxs.forEach(c => {
+        const parent = c.scopes[c.scopes.length - 1];
+        const arr = this.getPath(parent, grain[L].path);
+        if (Array.isArray(arr) && arr.length) arr.forEach((el, k) => next.push({ scopes: c.scopes.concat([el]), idx: c.idx.concat([k]), blank: c.blank }));
+        else if (keepEmpty) next.push({ scopes: c.scopes.concat([undefined]), idx: c.idx.concat([0]), blank: true });
+      });
+      ctxs = next;
+    }
+    return ctxs.map(c => ({
+      row: record, i: i, scopes: c.scopes, idx: c.idx, blank: c.blank,
+      rk: i + (c.idx.length ? ':' + c.idx.join('.') : '')
+    }));
+  }
+
+  expandedTotal(rows, v) {
+    const grain = this.grainOf(v);
+    if (!grain.length) return (rows || []).length;
+    const keepEmpty = v.keepEmpty !== false;
+    let n = 0;
+    (rows || []).forEach((r, i) => { n += this.expandRow(r, i, grain, keepEmpty).length; });
+    return n;
+  }
+
+  ctxOf(row, i) { return { row: row, i: i, scopes: [row], idx: [], abs: [], rk: String(i) }; }
+
+  resolveVal(base, rest, col) {
+    const parts = this.segs(rest);
+    let cur = base;
+    const mode = col.arrayMode || null;
+    const sep = col.joinSep === undefined || col.joinSep === null ? ', ' : col.joinSep;
+    const flat = x => x === null || x === undefined ? '' : (typeof x === 'object' ? JSON.stringify(x) : String(x));
+    for (let k = 0; k < parts.length; k++) {
+      if (cur === null || cur === undefined) return undefined;
+      if (Array.isArray(cur)) {
+        if (/^\d+$/.test(parts[k])) { cur = cur[Number(parts[k])]; continue; }
+        const remainder = parts.slice(k).join('.');
+        if (mode === 'count') return cur.length;
+        if (mode === 'join') return cur.map(el => this.resolveVal(el, remainder, { arrayMode: 'join', joinSep: sep })).filter(x => x !== undefined && x !== '').map(flat).join(sep);
+        cur = cur[mode === 'index' ? (Number(col.arrayIndex) || 0) : 0];
+        k--;
+        continue;
+      }
+      cur = cur[parts[k]];
+    }
+    if (Array.isArray(cur) && mode) {
+      if (mode === 'count') return cur.length;
+      if (mode === 'join') return cur.map(flat).join(sep);
+      if (mode === 'index') return cur[Number(col.arrayIndex) || 0];
+      if (mode === 'first') return cur[0];
     }
     return cur;
   }
@@ -778,24 +959,29 @@ class Component extends DCLogic {
     if (!code) return null;
     if (this._compiled && this._compiled[code]) return this._compiled[code];
     let fn;
-    try { fn = new Function('row', 'i', 'return (' + code + ');'); }
+    try { fn = new Function('row', 'i', 'item', 'return (' + code + ');'); }
     catch (e) { fn = () => ({ __err: e.message }); }
     if (!this._compiled) this._compiled = {};
     this._compiled[code] = fn;
     return fn;
   }
 
-  cellValue(col, row, i) {
+  cellValue(col, r) {
+    const ctx = r && r.row !== undefined ? r : this.ctxOf(r, 0);
+    const row = ctx.row, i = ctx.i;
+    const scopes = ctx.scopes || [row];
+    const item = scopes[scopes.length - 1];
     if (col.kind === 'js') {
       try {
         const f = this.compile(col.code);
         if (!f) return undefined;
-        let v = f(row, i);
-        if (typeof v === 'function') v = v(row, i);
+        let v = f(row, i, item);
+        if (typeof v === 'function') v = v(row, i, item);
         return v;
       } catch (e) { return { __err: e.message }; }
     }
-    return this.getPath(row, col.path);
+    const s = this.scopeForPath(col.path, ctx.abs || []);
+    return this.resolveVal(scopes[s.level], s.rest, col);
   }
 
   fmt(v) {
@@ -815,20 +1001,23 @@ class Component extends DCLogic {
     return { text: String(v), fg: 'oklch(0.3 0.012 60)', ff: sans, fs: 12, align: 'left', fst: 'normal' };
   }
 
-  passesFilter(f, row, i, cols) {
+  passesFilter(f, ctx, cols) {
+    const row = ctx.row, i = ctx.i;
+    const scopes = ctx.scopes || [row];
     const type = f.type || (f.kind === 'js' ? 'custom' : 'simple');
     if (type === 'compound') return true;
     if (type === 'custom') {
       try {
         const fn = this.compile(f.code);
-        let r = fn ? fn(row, i) : true;
-        if (typeof r === 'function') r = r(row, i);
+        const item = scopes[scopes.length - 1];
+        let r = fn ? fn(row, i, item) : true;
+        if (typeof r === 'function') r = r(row, i, item);
         return !!r;
       } catch (e) { return true; }
     }
     const col = cols.find(c => c.id === f.colId);
     if (!col) return true;
-    const v = this.cellValue(col, row, i);
+    const v = this.cellValue(col, ctx);
     const sv = v === null || v === undefined ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v));
     const nv = typeof v === 'number' ? v : parseFloat(sv);
     const t = f.value == null ? '' : String(f.value);
@@ -847,6 +1036,52 @@ class Component extends DCLogic {
       case 'regex': { try { return new RegExp(t, 'i').test(sv); } catch (e) { return true; } }
       default: return true;
     }
+  }
+
+  rowLabel(r) { return r.idx && r.idx.length ? (r.i + 1) + '.' + r.idx.map(k => k + 1).join('.') : String(r.i + 1); }
+
+  effArrayMode(c, info, level) {
+    if (!info) return level > 0 ? 'expand' : null;
+    const m = c.arrayMode || 'first';
+    return m === 'expand' ? 'first' : m;
+  }
+
+  arrayBadge(mode, col) {
+    if (mode === 'expand') return '⇲ rows';
+    if (mode === 'count') return 'count';
+    if (mode === 'join') { const s = (col.joinSep === undefined ? ', ' : col.joinSep).trim(); return 'join ' + (s || '␣'); }
+    if (mode === 'index') return '[' + (Number(col.arrayIndex) || 0) + ']';
+    if (mode === 'first') return 'first';
+    return '';
+  }
+
+  setGrain(absPath, level) {
+    this.updateView(v => {
+      const grain = (v.grain || []).slice(0, level);
+      const abs = this.grainAbs(grain);
+      if (abs.indexOf(absPath) >= 0) return {};
+      const prefix = abs.length ? abs[abs.length - 1] : '';
+      const rel = prefix && String(absPath).indexOf(prefix + '.') === 0 ? String(absPath).slice(prefix.length + 1) : absPath;
+      return { grain: grain.concat([{ path: rel }]), keepEmpty: v.keepEmpty !== false };
+    });
+  }
+
+  patchArrayCfg(patch) {
+    const d = this.state.draft;
+    if (!d) return;
+    this.setState(s => ({ draft: Object.assign({}, s.draft, patch) }));
+    if (!d.isNew) this.updateView(v => ({ columns: v.columns.map(c => c.id === d.id ? Object.assign({}, c, patch) : c) }));
+  }
+
+  pickArrayMode(mode, info, level) {
+    const d = this.state.draft;
+    if (!d) return;
+    const patch = { arrayMode: mode };
+    if (mode === 'index' && d.arrayIndex === undefined) patch.arrayIndex = 0;
+    if (mode === 'join' && d.joinSep === undefined) patch.joinSep = ', ';
+    this.patchArrayCfg(patch);
+    if (mode === 'expand') { if (info) this.setGrain(info.abs, info.level); }
+    else if (!info && level > 0) this.updateView(v => ({ grain: (v.grain || []).slice(0, level - 1) }));
   }
 
   moveColumn(i, dir) {
@@ -894,7 +1129,7 @@ class Component extends DCLogic {
     } else rows = [{ value: data }];
     const a = this.active();
     const keep = a && a.rows.length && this.sameShape(a.rows[0], rows[0]);
-    const fresh = { id: this.uid(), name: 'Table 1', columns: [], filters: [], sort: null };
+    const fresh = { id: this.uid(), name: 'Table 1', columns: [], filters: [], sort: null, grain: [], keepEmpty: true };
     this.updateActive(keep ? { raw: txt, rows: rows } : { raw: txt, rows: rows, views: [fresh], viewId: fresh.id });
     this.setState({ error: '', sourceOpen: false, inspect: null });
   };
@@ -908,7 +1143,7 @@ class Component extends DCLogic {
   loadDemo = () => {
     const rows = this.demoRows();
     if (this.rawRef && this.rawRef.current) this.rawRef.current.value = JSON.stringify(rows, null, 2);
-    const nv = { id: this.uid(), name: 'Table 1', columns: [], filters: [], sort: null };
+    const nv = { id: this.uid(), name: 'Table 1', columns: [], filters: [], sort: null, grain: [], keepEmpty: true };
     this.updateActive({ raw: JSON.stringify(rows, null, 2), rows: rows, views: [nv], viewId: nv.id });
     this.setState({ error: '', sourceOpen: false });
   };
@@ -919,7 +1154,7 @@ class Component extends DCLogic {
     const esc = s => '"' + String(s).replace(/"/g, '""') + '"';
     const lines = [vw.columns.map(c => esc(c.name)).join(',')];
     rows.forEach(r => lines.push(vw.columns.map(c => {
-      const v = this.cellValue(c, r.row, r.i);
+      const v = this.cellValue(c, r);
       return esc(v === null || v === undefined ? '' : (typeof v === 'object' ? JSON.stringify(v) : v));
     }).join(',')));
     const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
@@ -932,16 +1167,23 @@ class Component extends DCLogic {
 
   visibleRows(a, v) {
     const q = this.state.search.trim().toLowerCase();
-    let out = a.rows.map((row, i) => ({ row: row, i: i }));
+    const grain = this.grainOf(v);
+    const abs = this.grainAbs(grain);
+    const keepEmpty = v.keepEmpty !== false;
+    let out = [];
+    a.rows.forEach((row, i) => {
+      if (!grain.length) out.push({ row: row, i: i, scopes: [row], idx: [], abs: abs, rk: String(i), blank: false });
+      else this.expandRow(row, i, grain, keepEmpty).forEach(c => { c.abs = abs; out.push(c); });
+    });
     v.filters.forEach(f => {
       if (f.enabled === false) return;
       const type = f.type || (f.kind === 'js' ? 'custom' : 'simple');
       if (type === 'compound') return;
-      out = out.filter(r => this.passesFilter(f, r.row, r.i, v.columns));
+      out = out.filter(r => this.passesFilter(f, r, v.columns));
     });
     if (q) out = out.filter(r => v.columns.some(c => {
-      const v = this.cellValue(c, r.row, r.i);
-      const s = v === null || v === undefined ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v));
+      const cv = this.cellValue(c, r);
+      const s = cv === null || cv === undefined ? '' : (typeof cv === 'object' ? JSON.stringify(cv) : String(cv));
       return s.toLowerCase().includes(q);
     }));
     if (v.sort) {
@@ -949,7 +1191,7 @@ class Component extends DCLogic {
       if (col) {
         const dir = v.sort.dir === 'desc' ? -1 : 1;
         out = out.slice().sort((x, y) => {
-          const vx = this.cellValue(col, x.row, x.i), vy = this.cellValue(col, y.row, y.i);
+          const vx = this.cellValue(col, x), vy = this.cellValue(col, y);
           if (typeof vx === 'number' && typeof vy === 'number') return (vx - vy) * dir;
           const sx = vx == null ? '' : String(vx), sy = vy == null ? '' : String(vy);
           return sx.localeCompare(sy, undefined, { numeric: true }) * dir;
@@ -1027,6 +1269,19 @@ class Component extends DCLogic {
       popIsColumn: !!st.pop && st.pop.type === 'column',
       popIsFilter: !!st.pop && st.pop.type === 'filter',
       ops: this.opList(),
+      grainOn: false,
+      grainChips: [],
+      hasNextGrain: false,
+      nextGrainLabel: '',
+      addNextGrain: () => {},
+      keepEmptyMark: '✓',
+      keepEmptyFg: 'oklch(0.45 0.12 259)',
+      toggleKeepEmpty: () => {},
+      grainCount: '',
+      draftHasArray: false,
+      draftArrayLabel: '',
+      draftArrayHint: '',
+      arrayModes: [],
       sourceHint: 'Arrays, single objects and NDJSON all work. Columns are inferred on parse.',
       footHint: 'click a cell for its raw value · click # for the whole record',
       panelOpen: st.panel !== null,
@@ -1125,11 +1380,29 @@ class Component extends DCLogic {
 
     const vis = this.visibleRows(a, vw);
     const shown = vis.slice(0, maxRows);
+    const grain = this.grainOf(vw);
+    const gAbs = this.grainAbs(grain);
+    const arrInfo = {}, colLevel = {};
+    vw.columns.forEach(c => {
+      arrInfo[c.id] = c.kind === 'js' ? null : this.arrayInfoFor(a.rows, vw, c.path);
+      colLevel[c.id] = c.kind === 'js' ? 0 : this.scopeForPath(c.path || '', gAbs).level;
+    });
 
     vals.columns = vw.columns.map(c => {
       const sorted = vw.sort && vw.sort.colId === c.id;
+      const info = arrInfo[c.id], lvl = colLevel[c.id];
+      const eff = this.effArrayMode(c, info, lvl);
+      const badge = eff ? this.arrayBadge(eff, c) : '';
+      const accent = eff === 'expand';
       return {
         key: c.id, name: c.name || '(unnamed)',
+        hasArrayBadge: !!badge,
+        arrayBadge: badge,
+        arrayTitle: eff === 'expand'
+          ? 'One row per entry of ' + (info ? info.abs : gAbs[lvl - 1])
+          : (info ? info.abs + ' → ' + badge : ''),
+        arrayBadgeBg: accent ? 'oklch(0.9 0.045 259)' : 'oklch(0.93 0.006 78)',
+        arrayBadgeFg: accent ? 'oklch(0.4 0.12 259)' : 'oklch(0.5 0.012 62)',
         sub: c.kind === 'js' ? c.code : c.path,
         isJs: c.kind === 'js',
         minw: c.kind === 'js' ? 150 : 130,
@@ -1148,21 +1421,43 @@ class Component extends DCLogic {
 
     const ins = st.inspect;
     vals.rows = shown.map((r, n) => ({
-      key: r.i, n: r.i + 1,
-      bg: ins && ins.i === r.i ? 'oklch(0.965 0.018 259)' : (zebra && n % 2 === 1 ? 'oklch(0.978 0.004 80)' : 'oklch(0.995 0.003 80)'),
+      key: r.rk, n: this.rowLabel(r),
+      nFg: r.idx.length && r.idx.some(k => k > 0) ? 'oklch(0.82 0.012 65)' : 'oklch(0.72 0.012 65)',
+      bg: ins && ins.rk === r.rk ? 'oklch(0.965 0.018 259)' : (zebra && n % 2 === 1 ? 'oklch(0.978 0.004 80)' : 'oklch(0.995 0.003 80)'),
       onIndex: () => this.setState(s => ({
         panel: s.panel === 'columns' || s.panel === 'schema' ? s.panel : 'record',
-        inspect: s.inspect && s.inspect.kind === 'row' && s.inspect.i === r.i && s.panel === 'record' ? null : { kind: 'row', i: r.i }
+        inspect: s.inspect && s.inspect.kind === 'row' && s.inspect.rk === r.rk && s.panel === 'record' ? null : { kind: 'row', rk: r.rk, i: r.i }
       })),
-      cells: vw.columns.map(c => Object.assign({
-        key: c.id,
-        bg: ins && ins.kind === 'cell' && ins.i === r.i && ins.colId === c.id ? 'oklch(0.925 0.045 259)' : 'transparent',
-        onClick: () => this.setState(s => ({
-          panel: s.panel === 'columns' || s.panel === 'schema' ? s.panel : 'record',
-          inspect: s.inspect && s.inspect.kind === 'cell' && s.inspect.i === r.i && s.inspect.colId === c.id && s.panel === 'record' ? null : { kind: 'cell', i: r.i, colId: c.id }
-        }))
-      }, this.fmt(this.cellValue(c, r.row, r.i))))
+      cells: vw.columns.map(c => {
+        const repeated = r.idx.length > 0 && r.idx.slice(colLevel[c.id]).some(k => k > 0);
+        const f = this.fmt(this.cellValue(c, r));
+        return Object.assign({}, f, {
+          key: c.id,
+          fg: repeated ? 'oklch(0.79 0.008 65)' : f.fg,
+          bg: ins && ins.kind === 'cell' && ins.rk === r.rk && ins.colId === c.id ? 'oklch(0.925 0.045 259)' : 'transparent',
+          onClick: () => this.setState(s => ({
+            panel: s.panel === 'columns' || s.panel === 'schema' ? s.panel : 'record',
+            inspect: s.inspect && s.inspect.kind === 'cell' && s.inspect.rk === r.rk && s.inspect.colId === c.id && s.panel === 'record' ? null : { kind: 'cell', rk: r.rk, i: r.i, colId: c.id }
+          }))
+        });
+      })
     }));
+
+    const grainTotal = this.expandedTotal(a.rows, vw);
+    vals.grainOn = grain.length > 0;
+    vals.grainChips = grain.map((g, L) => ({
+      key: String(L), label: gAbs[L] + '[]',
+      removeTitle: 'Stop expanding ' + gAbs[L],
+      onRemove: e => { e.stopPropagation(); this.updateView(v => ({ grain: (v.grain || []).slice(0, L) })); }
+    }));
+    const nextK = this.nextGrainCandidate(a.rows, vw);
+    vals.hasNextGrain = !!nextK;
+    vals.nextGrainLabel = nextK ? '+ ' + nextK + '[]' : '';
+    vals.addNextGrain = () => { if (nextK) this.updateView(v => ({ grain: (v.grain || []).concat([{ path: nextK }]) })); };
+    vals.keepEmptyMark = vw.keepEmpty !== false ? '✓' : '';
+    vals.keepEmptyFg = vw.keepEmpty !== false ? 'oklch(0.45 0.12 259)' : 'oklch(0.72 0.012 65)';
+    vals.toggleKeepEmpty = () => this.updateView(v => ({ keepEmpty: v.keepEmpty === false }));
+    vals.grainCount = a.rows.length + ' → ' + grainTotal + ' rows';
 
     vals.hasRows = a.rows.length > 0 && vw.columns.length > 0;
     vals.noRows = !vals.hasRows;
@@ -1175,7 +1470,8 @@ class Component extends DCLogic {
       if (cols.length) this.updateView(() => ({ columns: cols }));
     };
     vals.summary = a.rows.length ? a.rows.length + ' records · ' + vw.columns.length + ' columns · ' + this.allPaths(a.rows).length + ' paths' : 'no data yet';
-    vals.footCount = vis.length === a.rows.length ? a.rows.length + ' rows' : vis.length + ' of ' + a.rows.length + ' rows';
+    vals.footCount = vis.length === grainTotal ? grainTotal + ' rows' : vis.length + ' of ' + grainTotal + ' rows';
+    if (grain.length) vals.footCount += ' · ' + a.rows.length + ' records';
     if (vis.length > maxRows) vals.footCount += ' · showing first ' + maxRows;
 
     const ops = this.opList();
@@ -1241,27 +1537,29 @@ class Component extends DCLogic {
     vals.openFilterTab = () => this.setState({ panel: 'filter', lastPanel: 'filter' });
 
     vals.aggregates = vw.columns.filter(c => {
-      const v = vis.length ? this.cellValue(c, vis[0].row, vis[0].i) : null;
+      const v = vis.length ? this.cellValue(c, vis[0]) : null;
       return typeof v === 'number';
     }).slice(0, 3).map(c => {
-      const nums = vis.map(r => this.cellValue(c, r.row, r.i)).filter(v => typeof v === 'number' && isFinite(v));
+      const nums = vis.map(r => this.cellValue(c, r)).filter(v => typeof v === 'number' && isFinite(v));
       const sum = nums.reduce((x, y) => x + y, 0);
       const avg = nums.length ? sum / nums.length : 0;
       const rnd = n => Math.round(n * 100) / 100;
       return { key: c.id, name: c.name, text: 'Σ ' + rnd(sum) + '  x̄ ' + rnd(avg) };
     });
 
-    const insRow = ins && a.rows[ins.i] !== undefined ? a.rows[ins.i] : null;
+    const insCtx = ins ? (vis.find(x => x.rk === ins.rk) || null) : null;
+    const insRow = insCtx ? insCtx.row : (ins && a.rows[ins.i] !== undefined ? a.rows[ins.i] : null);
+    const insLabel = insCtx ? this.rowLabel(insCtx) : (ins ? String(ins.i + 1) : '');
     vals.inspecting = !!ins && insRow !== null;
     if (vals.inspecting) {
       if (ins.kind === 'row') {
-        vals.inspectTitle = 'row ' + (ins.i + 1);
-        vals.inspectKind = 'full record';
+        vals.inspectTitle = 'row ' + insLabel;
+        vals.inspectKind = grain.length ? 'full record · row ' + insLabel : 'full record';
         vals.inspectJson = JSON.stringify(insRow, null, 2);
       } else {
         const c = vw.columns.find(x => x.id === ins.colId);
-        const v = c ? this.cellValue(c, insRow, ins.i) : undefined;
-        vals.inspectTitle = 'row ' + (ins.i + 1) + ' · ' + (c ? c.name : '?');
+        const v = c ? this.cellValue(c, insCtx || this.ctxOf(insRow, ins.i)) : undefined;
+        vals.inspectTitle = 'row ' + insLabel + ' · ' + (c ? c.name : '?');
         vals.inspectKind = this.typeOf(v);
         vals.inspectJson = v === undefined ? '' : (typeof v === 'string' ? v : JSON.stringify(v, null, 2));
       }
@@ -1432,10 +1730,42 @@ class Component extends DCLogic {
       }));
       let prev = '';
       if (d.kind === 'js' && a.rows.length) {
-        const v = this.cellValue({ kind: 'js', code: d.code }, a.rows[0], 0);
+        const v = this.cellValue({ kind: 'js', code: d.code }, vis.length ? vis[0] : this.ctxOf(a.rows[0], 0));
         prev = v && v.__err ? '⚠ ' + v.__err : 'row 1 → ' + this.fmt(v).text;
       }
       vals.draftPreview = prev;
+
+      const dInfo = d.kind === 'js' ? null : this.arrayInfoFor(a.rows, vw, d.path);
+      const dLevel = d.kind === 'js' ? 0 : this.scopeForPath(d.path || '', gAbs).level;
+      const dEff = this.effArrayMode(d, dInfo, dLevel);
+      vals.draftHasArray = d.kind !== 'js' && (!!dInfo || dLevel > 0);
+      vals.draftArrayLabel = dInfo ? dInfo.abs + '[]' : (dLevel > 0 ? gAbs[dLevel - 1] + '[]' : '');
+      vals.draftArrayHint = dEff === 'expand'
+        ? 'One row per entry. Every column under this array follows.'
+        : 'Applies to this column only.';
+      vals.arrayModes = [
+        { id: 'first', name: 'First entry only' },
+        { id: 'index', name: 'Entry at index', input: 'index' },
+        { id: 'join', name: 'Join all with', input: 'join' },
+        { id: 'count', name: 'Count' },
+        { id: 'expand', name: 'Expand to rows' }
+      ].map(m => {
+        const on = dEff === m.id;
+        return {
+          key: m.id, name: m.name,
+          dot: on ? '●' : '',
+          bg: on ? 'oklch(0.965 0.018 259)' : 'transparent',
+          fg: on ? 'oklch(0.36 0.1 259)' : 'oklch(0.42 0.012 60)',
+          fw: on ? '500' : '400',
+          hasInput: !!m.input,
+          inputValue: m.input === 'index' ? String(Number(d.arrayIndex) || 0) : (d.joinSep === undefined ? ', ' : d.joinSep),
+          onInput: e => {
+            const val = e.target.value;
+            this.patchArrayCfg(m.input === 'index' ? { arrayIndex: Number(val) || 0, arrayMode: 'index' } : { joinSep: val, arrayMode: 'join' });
+          },
+          onPick: () => this.pickArrayMode(m.id, dInfo, dLevel)
+        };
+      });
       vals.onDraftName = e => { const v = e.target.value; this.setState(s => ({ draft: Object.assign({}, s.draft, { name: v }) })); };
       vals.onDraftPath = e => { const v = e.target.value; this.setState(s => ({ draft: Object.assign({}, s.draft, { path: v }) })); };
       vals.onDraftCode = e => { const v = e.target.value; this.setState(s => ({ draft: Object.assign({}, s.draft, { code: v }) })); };
@@ -1446,7 +1776,7 @@ class Component extends DCLogic {
       vals.draftCancelLabel = d.isNew ? 'Cancel' : 'Remove';
       vals.draftCancelFg = d.isNew ? 'oklch(0.45 0.012 60)' : 'oklch(0.5 0.14 25)';
       vals.applyColumn = () => {
-        const next = { id: d.id, name: d.name || d.path || 'column', kind: d.kind, path: d.path, code: d.code };
+        const next = { id: d.id, name: d.name || d.path || 'column', kind: d.kind, path: d.path, code: d.code, arrayMode: d.arrayMode || null, arrayIndex: d.arrayIndex, joinSep: d.joinSep };
         if (d.isNew) this.updateView(v => ({ columns: v.columns.concat([next]) }));
         else this.updateView(v => ({ columns: v.columns.map(c => c.id === d.id ? Object.assign({}, c, next) : c) }));
         this.setState({ pop: null, draft: null });
@@ -1469,7 +1799,7 @@ class Component extends DCLogic {
       onRename: () => this.setState({ renamingId: v.id, renameDraft: v.name }),
       onDup: e => {
         e.stopPropagation();
-        const c = { id: this.uid(), name: v.name + ' copy', columns: v.columns.map(x => Object.assign({}, x)), filters: v.filters.map(x => Object.assign({}, x)), sort: v.sort };
+        const c = { id: this.uid(), name: v.name + ' copy', columns: v.columns.map(x => Object.assign({}, x)), filters: v.filters.map(x => Object.assign({}, x)), grain: (v.grain || []).map(g => ({ path: g.path })), keepEmpty: v.keepEmpty !== false, sort: v.sort };
         this.updateActive(w => ({ views: w.views.concat([c]), viewId: c.id }));
       },
       onClose: e => {
@@ -1482,7 +1812,7 @@ class Component extends DCLogic {
       }
     }));
     vals.addView = () => {
-      const c = { id: this.uid(), name: 'Table ' + (a.views.length + 1), columns: [], filters: [], sort: null };
+      const c = { id: this.uid(), name: 'Table ' + (a.views.length + 1), columns: [], filters: [], sort: null, grain: [], keepEmpty: true };
       this.updateActive(w => ({ views: w.views.concat([c]), viewId: c.id }));
     };
 

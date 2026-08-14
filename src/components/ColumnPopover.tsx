@@ -1,11 +1,13 @@
 import { cx } from '../lib/cx'
 import { formatCell } from '../lib/cell'
 import { evaluate, isCellError } from '../lib/expression'
+import { ARRAY_MODES, entryIndex, joinSeparator, rowLabel } from '../lib/grain'
+import { arrayModeHint } from '../lib/labels'
 import { lastSegment } from '../lib/path'
 import type { PathInfo } from '../lib/path'
 import { COLUMN_POPOVER_SIZE } from '../lib/popover'
 import type { ColumnDraft } from '../types/ui'
-import type { Row } from '../types/workbench'
+import type { ArrayMode, RowRef } from '../types/workbench'
 import { Popover } from './Popover'
 import styles from './ColumnPopover.module.css'
 
@@ -14,9 +16,18 @@ interface ColumnPopoverProps {
   y: number
   draft: ColumnDraft
   paths: PathInfo[]
-  /** First record of the workspace, used to preview a computed column. */
-  sampleRow: Row | null
+  /** First row on screen, used to preview a computed column against real data. */
+  sampleRef: RowRef | null
+  /**
+   * The array this column crosses and the mode in force, or null when the path
+   * never meets one. Picking a mode applies at once — an expanded array changes
+   * every row of the table, not just this column.
+   */
+  array: { label: string; mode: ArrayMode | null } | null
   onChange: (patch: Partial<ColumnDraft>) => void
+  onPickArrayMode: (mode: ArrayMode) => void
+  onEntryIndex: (index: number) => void
+  onJoinSep: (separator: string) => void
   onApply: () => void
   onRemove: () => void
   onClose: () => void
@@ -29,8 +40,12 @@ export function ColumnPopover({
   y,
   draft,
   paths,
-  sampleRow,
+  sampleRef,
+  array,
   onChange,
+  onPickArrayMode,
+  onEntryIndex,
+  onJoinSep,
   onApply,
   onRemove,
   onClose,
@@ -124,9 +139,51 @@ export function ColumnPopover({
               spellCheck={false}
               onChange={(event) => onChange({ code: event.target.value })}
             />
-            <div className={styles.preview}>{previewExpression(draft.code, sampleRow)}</div>
+            <div className={styles.preview}>{previewExpression(draft.code, sampleRef)}</div>
           </div>
         )}
+
+        {array ? (
+          <div className="wb-field">
+            <span className="wb-label">
+              Array — <code>{array.label}</code>
+            </span>
+            <div className={styles.modes}>
+              {ARRAY_MODES.map((mode) => {
+                const picked = array.mode === mode.id
+                return (
+                  <div key={mode.id} className={cx(styles.mode, picked && styles.modePicked)}>
+                    <button
+                      type="button"
+                      className={styles.modePick}
+                      onClick={() => onPickArrayMode(mode.id)}
+                    >
+                      <span className={styles.dot}>{picked ? '●' : ''}</span>
+                      {mode.name}
+                    </button>
+                    {mode.input === 'index' ? (
+                      <input
+                        className={styles.modeInput}
+                        value={String(entryIndex(draft))}
+                        aria-label="Array entry index"
+                        onChange={(event) => onEntryIndex(Number(event.target.value) || 0)}
+                      />
+                    ) : null}
+                    {mode.input === 'join' ? (
+                      <input
+                        className={styles.modeInput}
+                        value={joinSeparator(draft)}
+                        aria-label="Join separator"
+                        onChange={(event) => onJoinSep(event.target.value)}
+                      />
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
+            <div className={styles.hint}>{arrayModeHint(array.mode)}</div>
+          </div>
+        ) : null}
 
         <div className={styles.actions}>
           <button type="button" className={cx('wb-btn-primary', styles.apply)} onClick={onApply}>
@@ -145,9 +202,9 @@ export function ColumnPopover({
   )
 }
 
-function previewExpression(code: string, sampleRow: Row | null): string {
-  if (!code || sampleRow === null) return ''
-  const value = evaluate(code, sampleRow, 0)
+function previewExpression(code: string, ref: RowRef | null): string {
+  if (!code || ref === null) return ''
+  const value = evaluate(code, ref.row, ref.i, ref.scopes[ref.scopes.length - 1])
   if (isCellError(value)) return `⚠ ${value.__err}`
-  return `row 1 → ${formatCell(value).text}`
+  return `row ${rowLabel(ref)} → ${formatCell(value).text}`
 }

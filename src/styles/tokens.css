@@ -42,6 +42,8 @@
   --fg-fainter: oklch(0.7 0.012 65);
   --fg-ghost: oklch(0.72 0.012 65);
   --fg-empty: oklch(0.78 0.012 65);
+  /* A value that repeats the row above, because its array entry did not move on */
+  --fg-repeat: oklch(0.8 0.01 65);
   --fg-disabled: oklch(0.85 0.01 75);
 
   /* Accent (blue) */
@@ -63,6 +65,13 @@
   --acc-line-strong: oklch(0.78 0.09 259);
   --row-hover: oklch(0.972 0.012 259);
   --row-selected: oklch(0.965 0.018 259);
+  /* Grain bar: the strip above the table that says what one row is */
+  --acc-bar: oklch(0.972 0.014 259);
+  --acc-bar-line: oklch(0.88 0.03 259);
+  --acc-chip-bg: oklch(0.93 0.045 259);
+  --acc-chip-line: oklch(0.85 0.06 259);
+  --acc-fg-chip: oklch(0.4 0.12 259);
+  --acc-line-dashed: oklch(0.82 0.03 259);
 
   /* Danger (red) */
   --danger: oklch(0.52 0.15 25);

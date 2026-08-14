@@ -1,10 +1,17 @@
-import type { Column, Row } from '../types/workbench'
+import type { Column, RowRef } from '../types/workbench'
 import { evaluate, isCellError } from './expression'
-import { getPath } from './path'
+import { resolveValue, scopeForPath } from './grain'
+import { safeStringify } from './text'
 
-export function cellValue(col: Column, row: Row, i: number): unknown {
-  if (col.kind === 'js') return evaluate(col.code, row, i)
-  return getPath(row, col.path)
+/**
+ * Resolves one cell. A path column reads from the grain level it sits under, so
+ * `orders.lines.sku` becomes `sku` against the line the row was expanded from.
+ */
+export function cellValue(col: Column, ref: RowRef): unknown {
+  const item = ref.scopes[ref.scopes.length - 1]
+  if (col.kind === 'js') return evaluate(col.code, ref.row, ref.i, item)
+  const scope = scopeForPath(col.path ?? '', ref.abs)
+  return resolveValue(ref.scopes[scope.level], scope.rest, col)
 }
 
 /** Presentation variant for a cell; the table stylesheet owns the actual look. */
@@ -29,19 +36,4 @@ export function formatCell(v: unknown): FormattedCell {
     return { text, variant: 'object' }
   }
   return { text: String(v), variant: 'text' }
-}
-
-/** Flattens a value to the plain string used for search, filters and CSV. */
-export function toSearchText(v: unknown): string {
-  if (v === null || v === undefined) return ''
-  if (typeof v === 'object') return safeStringify(v)
-  return String(v)
-}
-
-function safeStringify(v: unknown): string {
-  try {
-    return JSON.stringify(v) ?? String(v)
-  } catch {
-    return '[object]'
-  }
 }

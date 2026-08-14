@@ -1,4 +1,4 @@
-import type { TableView, Workspace } from '../types/workbench'
+import type { ArrayMode, TableView, Workspace } from '../types/workbench'
 import type { FilterIssueCode } from './filterTree'
 import type { Profile } from './profiles'
 import type { SchemaCounts } from './schema'
@@ -75,8 +75,64 @@ function savedDate(iso: string): string {
   return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString()
 }
 
-/** Status bar row count, including the render cap when it bites. */
-export function rowCountLabel(visibleCount: number, totalCount: number, maxRows: number): string {
-  const base = visibleCount === totalCount ? `${totalCount} rows` : `${visibleCount} of ${totalCount} rows`
+/**
+ * Status bar row count, including the render cap when it bites. Once a grain is
+ * expanding arrays, rows outnumber records, so both are worth saying.
+ */
+export function rowCountLabel(
+  visibleCount: number,
+  totalCount: number,
+  maxRows: number,
+  recordCount: number | null = null,
+): string {
+  let base = visibleCount === totalCount ? `${totalCount} rows` : `${visibleCount} of ${totalCount} rows`
+  if (recordCount !== null) base += ` · ${recordCount} records`
   return visibleCount > maxRows ? `${base} · showing first ${maxRows}` : base
+}
+
+/** Grain bar chip: the array this level expands. */
+export function grainChipLabel(path: string): string {
+  return `${path}[]`
+}
+
+export function grainChipTitle(path: string): string {
+  return `Stop expanding ${path}`
+}
+
+/** Grain bar button offering the next array down. */
+export function nextGrainLabel(key: string): string {
+  return `+ ${key}[]`
+}
+
+/** Grain bar tally: how many rows the records expanded into. */
+export function grainCountLabel(recordCount: number, rowCount: number): string {
+  return `${recordCount} → ${rowCount} rows`
+}
+
+/** Column header tag: what the column does with the array it crosses. */
+export function arrayBadgeLabel(mode: ArrayMode, separator: string, index: number): string {
+  switch (mode) {
+    case 'expand':
+      return '⇲ rows'
+    case 'count':
+      return 'count'
+    case 'join':
+      return `join ${separator.trim() || '␣'}`
+    case 'index':
+      return `[${index}]`
+    case 'first':
+      return 'first'
+  }
+}
+
+export function arrayBadgeTitle(mode: ArrayMode, path: string, badge: string): string {
+  if (mode === 'expand') return `One row per entry of ${path}`
+  return path ? `${path} → ${badge}` : ''
+}
+
+/** Column popover: how far the chosen array mode reaches. */
+export function arrayModeHint(mode: ArrayMode | null): string {
+  return mode === 'expand'
+    ? 'One row per entry. Every column under this array follows.'
+    : 'Applies to this column only.'
 }

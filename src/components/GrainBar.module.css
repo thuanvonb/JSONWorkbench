@@ -1,0 +1,127 @@
+.bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  background: var(--acc-bar);
+  border-bottom: 1px solid var(--acc-bar-line);
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.lead {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+}
+
+.record {
+  flex: none;
+  padding: 3px 7px;
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+.step {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.caret {
+  flex: none;
+  font-size: 9px;
+  color: var(--fg-faint);
+}
+
+.chip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 7px;
+  border: 1px solid var(--acc-chip-line);
+  border-radius: 4px;
+  background: var(--acc-chip-bg);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--acc-fg-chip);
+}
+
+.drop {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--acc-fg-soft);
+  cursor: pointer;
+}
+
+.drop:hover {
+  color: var(--danger-fg);
+}
+
+.next {
+  flex: none;
+  padding: 3px 7px;
+  border: 1px dashed var(--acc-line-dashed);
+  border-radius: 4px;
+  background: none;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--acc-fg-soft);
+  cursor: pointer;
+}
+
+.next:hover {
+  border-color: var(--acc);
+  color: var(--acc-fg-chip);
+}
+
+.trailing {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+  flex: none;
+}
+
+.keep {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.mark {
+  flex: none;
+  width: 8px;
+  color: var(--fg-ghost);
+}
+
+.markOn {
+  color: var(--acc-fg);
+}
+
+.count {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-muted);
+}

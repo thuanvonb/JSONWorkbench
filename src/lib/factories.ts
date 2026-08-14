@@ -8,6 +8,7 @@ import type {
   TableView,
   Workspace,
 } from '../types/workbench'
+import type { ColumnDraft } from '../types/ui'
 import { createId } from './id'
 import { lastSegment, leafPaths } from './path'
 
@@ -15,7 +16,7 @@ import { lastSegment, leafPaths } from './path'
 const MAX_INFERRED_COLUMNS = 14
 
 export function createView(name = 'Table 1', columns: Column[] = []): TableView {
-  return { id: createId(), name, columns, filters: [], sort: null }
+  return { id: createId(), name, columns, filters: [], sort: null, grain: [], keepEmpty: true }
 }
 
 export function createWorkspace(name = 'Workspace 1', rows: Row[] = [], columns: Column[] = []): Workspace {
@@ -37,6 +38,8 @@ export function duplicateView(view: TableView): TableView {
     columns: view.columns.map((c) => ({ ...c })),
     filters: view.filters.map((f) => ({ ...f })),
     sort: view.sort,
+    grain: view.grain.map((g) => ({ ...g })),
+    keepEmpty: view.keepEmpty,
   }
 }
 
@@ -58,6 +61,20 @@ export function createCompoundFilter(existing: Filter[]): CompoundFilter {
     left: existing[0]?.id ?? null,
     cop: 'AND',
     right: existing[1]?.id ?? null,
+  }
+}
+
+/** The column the popover would write, live-applied as well as on Apply. */
+export function columnFromDraft(draft: ColumnDraft): Column {
+  return {
+    id: draft.id,
+    name: draft.name || draft.path || 'column',
+    kind: draft.kind,
+    path: draft.path,
+    code: draft.code,
+    arrayMode: draft.arrayMode ?? null,
+    arrayIndex: draft.arrayIndex,
+    joinSep: draft.joinSep,
   }
 }
 

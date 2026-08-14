@@ -1,8 +1,10 @@
 import type {
+  ArrayMode,
   BoolOp,
   ColumnKind,
   Filter,
   FilterOp,
+  GrainLevel,
   Row,
   SortDir,
   TableView,
@@ -33,6 +35,9 @@ export interface ProfileView {
   /** Sort is stored by column name, since ids are minted fresh on load. */
   sortColName: string | null
   sortDir: SortDir | null
+  /** Arrays the table expands into rows; paths, so they need no ids at all. */
+  grain?: GrainLevel[]
+  keepEmpty?: boolean
 }
 
 export interface ProfileColumn {
@@ -40,6 +45,9 @@ export interface ProfileColumn {
   kind: ColumnKind
   path?: string
   code?: string
+  arrayMode?: ArrayMode | null
+  arrayIndex?: number
+  joinSep?: string
 }
 
 /**
@@ -90,10 +98,20 @@ function snapshotView(view: TableView): ProfileView {
   }
   return {
     name: view.name,
-    columns: view.columns.map((c) => ({ name: c.name, kind: c.kind, path: c.path, code: c.code })),
+    columns: view.columns.map((c) => ({
+      name: c.name,
+      kind: c.kind,
+      path: c.path,
+      code: c.code,
+      arrayMode: c.arrayMode,
+      arrayIndex: c.arrayIndex,
+      joinSep: c.joinSep,
+    })),
     filters: view.filters.map((f) => snapshotFilter(f, nameOf, positionOf)),
     sortColName: view.sort ? nameOf(view.sort.colId) : null,
     sortDir: view.sort ? view.sort.dir : null,
+    grain: view.grain.map((g) => ({ path: g.path })),
+    keepEmpty: view.keepEmpty,
   }
 }
 
@@ -139,8 +157,19 @@ export function profileViews(profile: Profile): TableView[] {
       columns,
       filters: liveFilters(saved.filters ?? [], idOf),
       sort: sortOf(saved, idOf(saved.sortColName)),
+      grain: normalizeGrain(saved.grain),
+      keepEmpty: saved.keepEmpty !== false,
     }
   })
+}
+
+/** Profiles saved before arrays could be expanded have no grain to restore. */
+function normalizeGrain(input: unknown): GrainLevel[] {
+  if (!Array.isArray(input)) return []
+  return input
+    .map((level) => (level as Partial<GrainLevel>)?.path)
+    .filter((path): path is string => typeof path === 'string' && path !== '')
+    .map((path) => ({ path }))
 }
 
 /** Ids are minted before the rows are built, so compounds can point at them. */

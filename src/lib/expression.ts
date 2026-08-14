@@ -9,7 +9,11 @@ export function isCellError(v: unknown): v is CellError {
   return !!v && typeof v === 'object' && typeof (v as CellError).__err === 'string'
 }
 
-export type RowExpression = (row: Row, i: number) => unknown
+/**
+ * `row` is always the whole record; `item` is the array entry the row was
+ * expanded from, and the record itself when the table has no grain.
+ */
+export type RowExpression = (row: Row, i: number, item: unknown) => unknown
 
 /**
  * Compiled user expressions, keyed by source. Expressions run against data the
@@ -25,7 +29,7 @@ export function compileExpression(code: string | undefined): RowExpression | nul
   let fn: RowExpression
   try {
     // eslint-disable-next-line no-new-func
-    fn = new Function('row', 'i', `return (${code});`) as RowExpression
+    fn = new Function('row', 'i', 'item', `return (${code});`) as RowExpression
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     fn = () => ({ __err: message })
@@ -35,14 +39,14 @@ export function compileExpression(code: string | undefined): RowExpression | nul
 }
 
 /** Runs an expression, folding both compile and runtime failures into a CellError. */
-export function evaluate(code: string | undefined, row: Row, i: number): unknown {
+export function evaluate(code: string | undefined, row: Row, i: number, item: unknown = row): unknown {
   const fn = compileExpression(code)
   if (!fn) return undefined
   try {
-    const result = fn(row, i)
+    const result = fn(row, i, item)
     // An expression like `row => row.total` evaluates to a function; apply it
     // so both `row.total` and the arrow form behave the same.
-    return typeof result === 'function' ? (result as RowExpression)(row, i) : result
+    return typeof result === 'function' ? (result as RowExpression)(row, i, item) : result
   } catch (err) {
     return { __err: err instanceof Error ? err.message : String(err) }
   }

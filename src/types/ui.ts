@@ -1,6 +1,6 @@
-import type { ColumnKind } from './workbench'
+import type { ArrayConfig, ColumnKind } from './workbench'
 
-export interface ColumnDraft {
+export interface ColumnDraft extends ArrayConfig {
   id: string
   name: string
   kind: ColumnKind

@@ -11,15 +11,19 @@ export interface PathInfo {
 /** Records scanned when listing available paths. */
 const SAMPLE_SIZE = 40
 
+/** Splits `a.b[0].c` into its segments, with bracket indexes as their own step. */
+export function pathSegments(path: string | undefined): string[] {
+  return String(path ?? '')
+    .replace(/\[(\d+)\]/g, '.$1')
+    .split('.')
+    .filter((p) => p !== '')
+}
+
 /** Reads `a.b[0].c` out of a record, tolerating missing links. */
 export function getPath(obj: Row, path: string | undefined): unknown {
   if (!path) return undefined
   let cur: unknown = obj
-  const parts = String(path)
-    .replace(/\[(\d+)\]/g, '.$1')
-    .split('.')
-    .filter((p) => p !== '')
-  for (const part of parts) {
+  for (const part of pathSegments(path)) {
     if (cur === null || cur === undefined) return undefined
     cur = (cur as Record<string, unknown>)[part]
   }

@@ -5,6 +5,7 @@ import { ColumnsPanel } from './components/ColumnsPanel'
 import { DataTable } from './components/DataTable'
 import { EmptyState } from './components/EmptyState'
 import { FilterPanel } from './components/FilterPanel'
+import { GrainBar } from './components/GrainBar'
 import { InspectorPanel } from './components/InspectorPanel'
 import { ProfilesModal } from './components/ProfilesModal'
 import { SchemaPanel } from './components/SchemaPanel'
@@ -18,6 +19,7 @@ import { csvFileName, toCsv } from './lib/csv'
 import { demoRows } from './lib/demoData'
 import { downloadText } from './lib/download'
 import {
+  columnFromDraft,
   createCompoundFilter,
   createCustomFilter,
   createPathColumn,
@@ -25,9 +27,18 @@ import {
   inferColumns,
 } from './lib/factories'
 import { buildFilterPlan } from './lib/filterTree'
+import {
+  DEFAULT_JOIN_SEP,
+  columnGrain,
+  columnGrains,
+  expandRows,
+  grainPaths,
+  nextGrainKey,
+  rootRef,
+} from './lib/grain'
 import { createId } from './lib/id'
 import { describeInspect } from './lib/inspect'
-import { currentSetupLabel, rowCountLabel, workspaceSummary } from './lib/labels'
+import { currentSetupLabel, grainChipLabel, rowCountLabel, workspaceSummary } from './lib/labels'
 import { DEFAULT_PANEL_WIDTH } from './lib/panelSize'
 import { parseRecords, sameShape } from './lib/parse'
 import type { Profile } from './lib/profiles'
@@ -45,7 +56,7 @@ import type {
   RenameTarget,
   SchemaViewState,
 } from './types/ui'
-import type { Column, Filter, FilterType, Inspect, Row } from './types/workbench'
+import type { ArrayMode, Filter, FilterType, Inspect, Row, RowRef } from './types/workbench'
 import styles from './App.module.css'
 
 const FOOTER_HINT = 'click a cell for its raw value · click # for the whole record'
@@ -68,17 +79,40 @@ export default function App() {
   const [popover, setPopover] = useState<PopoverState | null>(null)
   const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null)
 
+  // Every table row, before filtering: one per record, or one per array entry
+  // once the view's grain expands something.
+  const expanded = useMemo(
+    () => (workspace && view ? expandRows(workspace.rows, view) : []),
+    [workspace, view],
+  )
   const visible = useMemo(
-    () => (workspace && view ? selectRows(workspace, view, search) : []),
-    [workspace, view, search],
+    () => (view ? selectRows(expanded, view, search) : []),
+    [expanded, view, search],
   )
   const shown = useMemo(() => visible.slice(0, display.maxRows), [visible, display.maxRows])
   const aggregates = useMemo(() => (view ? computeAggregates(view, visible) : []), [view, visible])
   const paths = useMemo(() => (workspace ? collectPaths(workspace.rows) : []), [workspace])
   const filterPlan = useMemo(() => buildFilterPlan(view?.filters ?? []), [view])
   const inspectDetail = useMemo(
-    () => (workspace && view ? describeInspect(inspect, workspace.rows, view.columns) : null),
-    [inspect, workspace, view],
+    () => (workspace && view ? describeInspect(inspect, visible, workspace.rows, view.columns) : null),
+    [inspect, visible, workspace, view],
+  )
+  const grains = useMemo(
+    () => (workspace && view ? columnGrains(workspace.rows, view) : new Map()),
+    [workspace, view],
+  )
+  const grainPathList = useMemo(() => grainPaths(view?.grain ?? []), [view])
+  const nextGrain = useMemo(
+    () => (workspace && view ? nextGrainKey(workspace.rows, view) : null),
+    [workspace, view],
+  )
+  // The draft is not a column yet, so its array handling is worked out on its own.
+  const draftGrain = useMemo(
+    () =>
+      workspace && view && popover?.kind === 'column' && popover.draft.kind === 'path'
+        ? columnGrain(workspace.rows, view, popover.draft)
+        : null,
+    [workspace, view, popover],
   )
 
   // useWorkbench always keeps one workspace holding one table; this only guards
@@ -166,6 +200,9 @@ export default function App() {
       kind: col.kind,
       path: col.path ?? '',
       code: col.code ?? '',
+      arrayMode: col.arrayMode ?? null,
+      arrayIndex: col.arrayIndex,
+      joinSep: col.joinSep,
       isNew: false,
     }
     setPopover({
@@ -180,17 +217,41 @@ export default function App() {
       current?.kind === 'column' ? { ...current, draft: { ...current.draft, ...patch } } : current,
     )
 
+  /**
+   * Array handling lands at once rather than on Apply: expanding an array
+   * changes every row of the table, so the choice has to be visible while it is
+   * being made.
+   */
+  const patchColumnArray = (patch: Partial<ColumnDraft>) => {
+    if (popover?.kind !== 'column') return
+    const draft = { ...popover.draft, ...patch }
+    setPopover({ ...popover, draft })
+    if (!draft.isNew) dispatch({ type: 'column/update', column: columnFromDraft(draft) })
+  }
+
+  const pickArrayMode = (mode: ArrayMode) => {
+    if (popover?.kind !== 'column' || !draftGrain) return
+    const draft = popover.draft
+    const patch: Partial<ColumnDraft> = { arrayMode: mode }
+    if (mode === 'index' && draft.arrayIndex === undefined) patch.arrayIndex = 0
+    if (mode === 'join' && draft.joinSep === undefined) patch.joinSep = DEFAULT_JOIN_SEP
+    patchColumnArray(patch)
+
+    if (mode === 'expand') {
+      if (draftGrain.array) {
+        dispatch({ type: 'grain/expand', path: draftGrain.array.abs, level: draftGrain.array.level })
+      }
+    } else if (!draftGrain.array && draftGrain.level > 0) {
+      // Nothing left to resolve per column: the column only reads inside a level
+      // the grain expanded, so stepping off `expand` means dropping that level.
+      dispatch({ type: 'grain/trim', level: draftGrain.level - 1 })
+    }
+  }
+
   const applyColumn = () => {
     if (popover?.kind !== 'column') return
-    const draft = popover.draft
-    const column: Column = {
-      id: draft.id,
-      name: draft.name || draft.path || 'column',
-      kind: draft.kind,
-      path: draft.path,
-      code: draft.code,
-    }
-    if (draft.isNew) dispatch({ type: 'column/add', column })
+    const column = columnFromDraft(popover.draft)
+    if (popover.draft.isNew) dispatch({ type: 'column/add', column })
     else dispatch({ type: 'column/update', column })
     setPopover(null)
   }
@@ -200,6 +261,13 @@ export default function App() {
       dispatch({ type: 'column/remove', id: popover.draft.id })
     }
     setPopover(null)
+  }
+
+  const addNextGrain = () => {
+    if (!nextGrain) return
+    const prefix = grainPathList[grainPathList.length - 1] ?? ''
+    const path = prefix ? `${prefix}.${nextGrain}` : nextGrain
+    dispatch({ type: 'grain/expand', path, level: view.grain.length })
   }
 
   /** Schema tab: one click puts a path on the table as a column. */
@@ -239,17 +307,20 @@ export default function App() {
   // same value again clears it, leaving the Record tab open on its hint.
   const inspectTab: PanelTab = panel === 'schema' || panel === 'columns' ? panel : 'record'
 
-  const toggleRowInspect = (index: number) => {
-    const same = inspect?.kind === 'row' && inspect.i === index && panel === 'record'
+  const toggleRowInspect = (ref: RowRef) => {
+    const same = inspect?.kind === 'row' && inspect.key === ref.key && panel === 'record'
     openPanel(inspectTab)
-    setInspect(same ? null : { kind: 'row', i: index })
+    setInspect(same ? null : { kind: 'row', key: ref.key, i: ref.i })
   }
 
-  const toggleCellInspect = (index: number, colId: string) => {
+  const toggleCellInspect = (ref: RowRef, colId: string) => {
     const same =
-      inspect?.kind === 'cell' && inspect.i === index && inspect.colId === colId && panel === 'record'
+      inspect?.kind === 'cell' &&
+      inspect.key === ref.key &&
+      inspect.colId === colId &&
+      panel === 'record'
     openPanel(inspectTab)
-    setInspect(same ? null : { kind: 'cell', i: index, colId })
+    setInspect(same ? null : { kind: 'cell', key: ref.key, i: ref.i, colId })
   }
 
   const closePanel = () => {
@@ -265,6 +336,14 @@ export default function App() {
     setProfilesOpen(false)
     closePanel()
   }
+
+  const draftArray =
+    draftGrain && (draftGrain.array || draftGrain.level > 0)
+      ? {
+          label: grainChipLabel(draftGrain.array?.abs ?? grainPathList[draftGrain.level - 1] ?? ''),
+          mode: draftGrain.mode,
+        }
+      : null
 
   return (
     <div className={styles.app}>
@@ -295,33 +374,48 @@ export default function App() {
 
       <div className={styles.main}>
         <div className={styles.grid}>
-          {hasRows ? (
-            <DataTable
-              columns={view.columns}
-              rows={shown}
-              sort={view.sort}
-              display={display}
-              inspect={inspect}
-              onSort={(colId) => dispatch({ type: 'sort/toggle', colId })}
-              onEditColumn={openEditColumn}
-              onInspectRow={toggleRowInspect}
-              onInspectCell={toggleCellInspect}
+          {view.grain.length ? (
+            <GrainBar
+              paths={grainPathList}
+              keepEmpty={view.keepEmpty}
+              nextKey={nextGrain}
+              recordCount={workspace.rows.length}
+              rowCount={expanded.length}
+              onTrim={(level) => dispatch({ type: 'grain/trim', level })}
+              onAddNext={addNextGrain}
+              onToggleKeepEmpty={() => dispatch({ type: 'grain/keepEmpty' })}
             />
-          ) : (
-            <EmptyState
-              title={
-                workspace.rows.length
-                  ? 'This table has no columns yet.'
-                  : 'No data set up in this workspace yet.'
-              }
-              actionLabel={workspace.rows.length ? 'Add a column' : 'Set up source JSON'}
-              onAction={(event) => {
-                if (workspace.rows.length) openAddColumn(event.currentTarget.getBoundingClientRect())
-                else setSourceOpen(true)
-              }}
-              onInfer={workspace.rows.length ? inferTable : undefined}
-            />
-          )}
+          ) : null}
+          <div className={styles.scroll}>
+            {hasRows ? (
+              <DataTable
+                columns={view.columns}
+                rows={shown}
+                sort={view.sort}
+                display={display}
+                inspect={inspect}
+                grains={grains}
+                onSort={(colId) => dispatch({ type: 'sort/toggle', colId })}
+                onEditColumn={openEditColumn}
+                onInspectRow={toggleRowInspect}
+                onInspectCell={toggleCellInspect}
+              />
+            ) : (
+              <EmptyState
+                title={
+                  workspace.rows.length
+                    ? 'This table has no columns yet.'
+                    : 'No data set up in this workspace yet.'
+                }
+                actionLabel={workspace.rows.length ? 'Add a column' : 'Set up source JSON'}
+                onAction={(event) => {
+                  if (workspace.rows.length) openAddColumn(event.currentTarget.getBoundingClientRect())
+                  else setSourceOpen(true)
+                }}
+                onInfer={workspace.rows.length ? inferTable : undefined}
+              />
+            )}
+          </div>
         </div>
         {panel ? (
           <SidePanel
@@ -377,7 +471,12 @@ export default function App() {
       />
 
       <StatusBar
-        count={rowCountLabel(visible.length, workspace.rows.length, display.maxRows)}
+        count={rowCountLabel(
+          visible.length,
+          expanded.length,
+          display.maxRows,
+          view.grain.length ? workspace.rows.length : null,
+        )}
         aggregates={aggregates}
         hint={FOOTER_HINT}
       />
@@ -416,8 +515,12 @@ export default function App() {
           y={popover.y}
           draft={popover.draft}
           paths={paths}
-          sampleRow={workspace.rows[0] ?? null}
+          sampleRef={visible[0] ?? (workspace.rows.length ? rootRef(workspace.rows[0], 0) : null)}
+          array={draftArray}
           onChange={patchColumnDraft}
+          onPickArrayMode={pickArrayMode}
+          onEntryIndex={(index) => patchColumnArray({ arrayIndex: index, arrayMode: 'index' })}
+          onJoinSep={(separator) => patchColumnArray({ joinSep: separator, arrayMode: 'join' })}
           onApply={applyColumn}
           onRemove={removeColumn}
           onClose={() => setPopover(null)}

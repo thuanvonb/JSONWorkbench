@@ -1,7 +1,8 @@
-import type { BoolOp, Column, Filter, FilterOp, Row } from '../types/workbench'
-import { cellValue, toSearchText } from './cell'
+import type { BoolOp, Column, Filter, FilterOp, RowRef } from '../types/workbench'
+import { cellValue } from './cell'
 import { evaluate } from './expression'
 import { createId } from './id'
+import { toSearchText } from './text'
 
 export interface FilterOpOption {
   id: FilterOp
@@ -63,18 +64,19 @@ export function isValuelessOp(op: FilterOp): boolean {
  * A filter that cannot be evaluated (unknown column, broken regex, throwing
  * expression) keeps the row: a half-typed filter should not hide data.
  */
-export function passesFilter(filter: Filter, row: Row, i: number, columns: Column[]): boolean {
+export function passesFilter(filter: Filter, ref: RowRef, columns: Column[]): boolean {
   if (filter.type === 'compound') return true
 
   if (filter.type === 'custom') {
-    const result = evaluate(filter.code, row, i)
+    const item = ref.scopes[ref.scopes.length - 1]
+    const result = evaluate(filter.code, ref.row, ref.i, item)
     return Boolean(result)
   }
 
   const col = columns.find((c) => c.id === filter.colId)
   if (!col) return true
 
-  const value = cellValue(col, row, i)
+  const value = cellValue(col, ref)
   const text = toSearchText(value)
   const num = typeof value === 'number' ? value : Number.parseFloat(text)
   const target = filter.value ?? ''

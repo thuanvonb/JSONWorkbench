@@ -100,6 +100,22 @@
   color: var(--acc-fg-tag);
 }
 
+.arrayTag {
+  flex: none;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--chrome);
+  font-family: var(--mono);
+  font-size: 8.5px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
+.arrayTagOn {
+  background: var(--acc-bg-pill);
+  color: var(--acc-fg-chip);
+}
+
 .headMenu {
   display: flex;
   align-items: center;
@@ -236,4 +252,15 @@
 .text {
   font-size: 12px;
   color: var(--fg-cell);
+}
+
+/* A row that repeats a record already on screen: the record's own values are
+   dimmed, so only the entry that moved on reads as new. Last, to win over the
+   value-type rules above. */
+.indexRepeated {
+  color: var(--fg-empty);
+}
+
+.cellRepeated {
+  color: var(--fg-repeat);
 }
