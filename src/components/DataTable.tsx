@@ -2,6 +2,7 @@ import type { MouseEvent } from 'react'
 
 import { cellValue, formatCell } from '../lib/cell'
 import { cx } from '../lib/cx'
+import { cellDomKey } from '../lib/gridNav'
 import type { ColumnGrain } from '../lib/grain'
 import { isRepeatedCell, isRepeatedRow, rowLabel } from '../lib/grain'
 import type { Column, Density, DisplaySettings, Inspect, RowRef, Sort } from '../types/workbench'
@@ -123,6 +124,8 @@ export function DataTable({
                 return (
                   <td
                     key={col.id}
+                    // Lets the arrow keys scroll the selected cell into view.
+                    data-cell={cellDomKey(ref.key, col.id)}
                     className={cx(
                       styles.cell,
                       styles[cell.variant],

@@ -99,6 +99,12 @@ export interface Sort {
 export interface TableView {
   id: string
   name: string
+  /**
+   * Path this table reads instead of the whole payload; '' is the source itself.
+   * Changing it re-roots everything below, so the columns, filters, grain and
+   * sort are dropped with it.
+   */
+  offset: string
   columns: Column[]
   filters: Filter[]
   sort: Sort | null

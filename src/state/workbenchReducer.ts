@@ -1,5 +1,6 @@
 import { createView, createWorkspace, duplicateView } from '../lib/factories'
 import { appendGrain } from '../lib/grain'
+import { offsetTableName } from '../lib/offset'
 import type { Column, Filter, Row, TableView, Workspace } from '../types/workbench'
 
 export interface WorkbenchState {
@@ -20,6 +21,10 @@ export type WorkbenchAction =
   | { type: 'view/close'; id: string }
   /** Swaps every table for the ones rebuilt from a saved profile. */
   | { type: 'views/replace'; views: TableView[] }
+  /** Re-roots the active table at `path`. Everything read from the old root goes. */
+  | { type: 'offset/set'; path: string }
+  /** Opens `path` as a table of its own, leaving the current one alone. */
+  | { type: 'offset/newTable'; path: string }
   | { type: 'column/add'; column: Column }
   | { type: 'column/update'; column: Column }
   | { type: 'column/remove'; id: string }
@@ -107,6 +112,23 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
       return patchActive(state, () => {
         if (action.views.length === 0) return {}
         return { views: action.views, viewId: action.views[0].id }
+      })
+
+    // Columns, filters, grain and sort all resolve against the old root, so
+    // re-rooting takes them with it rather than leaving them pointing at nothing.
+    case 'offset/set':
+      return patchView(state, () => ({
+        offset: action.path,
+        columns: [],
+        filters: [],
+        grain: [],
+        sort: null,
+      }))
+
+    case 'offset/newTable':
+      return patchActive(state, (w) => {
+        const view = createView(offsetTableName(action.path), [], action.path)
+        return { views: [...w.views, view], viewId: view.id }
       })
 
     case 'column/add':

@@ -77,17 +77,53 @@ function savedDate(iso: string): string {
 
 /**
  * Status bar row count, including the render cap when it bites. Once a grain is
- * expanding arrays, rows outnumber records, so both are worth saying.
+ * expanding arrays, rows outnumber records, so both are worth saying, and an
+ * offset says which records those are.
  */
 export function rowCountLabel(
   visibleCount: number,
   totalCount: number,
   maxRows: number,
   recordCount: number | null = null,
+  offset = '',
 ): string {
   let base = visibleCount === totalCount ? `${totalCount} rows` : `${visibleCount} of ${totalCount} rows`
   if (recordCount !== null) base += ` · ${recordCount} records`
+  if (offset) base += ` · offset ${offset}`
   return visibleCount > maxRows ? `${base} · showing first ${maxRows}` : base
+}
+
+/** Offset bar tally: how much of the source the table's records came from. */
+export function offsetCountLabel(sourceCount: number, recordCount: number): string {
+  const source = sourceCount === 1 ? '1 source object' : `${sourceCount} source records`
+  return `${source} → ${recordCount} ${recordCount === 1 ? 'record' : 'records'}`
+}
+
+/** Offset bar crumb: where clicking it would re-root the table. */
+export function offsetCrumbTitle(path: string, current: boolean): string {
+  if (current) return 'Current root of this table'
+  return path ? `Offset to ${path}` : 'Back to the whole source'
+}
+
+/** Schema row's offset button: what reading from that key would do. */
+export function offsetTitle(path: string): string {
+  return `Offset this table to ${path}`
+}
+
+/** The confirm shown when re-rooting would drop the table's setup. */
+export function offsetAskTitle(path: string): string {
+  return path ? `Offset this table to ${path}?` : 'Remove the offset?'
+}
+
+export function offsetAskBody(columnCount: number, filterCount: number): string {
+  const columns = `${columnCount} ${columnCount === 1 ? 'column' : 'columns'}`
+  const filters = filterCount ? ` and ${filterCount} ${filterCount === 1 ? 'filter' : 'filters'}` : ''
+  return `${columns}${filters} read from the current root and will be dropped. Grain and sort reset too.`
+}
+
+/** The table is empty because the offset path is not in this data at all. */
+export function offsetEmptyTitle(path: string): string {
+  return `Nothing at ${path} in this data.`
 }
 
 /** Grain bar chip: the array this level expands. */

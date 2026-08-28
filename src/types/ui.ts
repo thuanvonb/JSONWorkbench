@@ -19,6 +19,11 @@ export interface SchemaViewState {
   optionalOnly: boolean
 }
 
+/** A pending offset, held while the confirm asks about dropping the setup. */
+export interface OffsetRequest {
+  path: string
+}
+
 export interface Point {
   x: number
   y: number

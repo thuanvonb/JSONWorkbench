@@ -15,8 +15,8 @@ import { lastSegment, leafPaths } from './path'
 /** How many columns "Infer table" is willing to put on screen at once. */
 const MAX_INFERRED_COLUMNS = 14
 
-export function createView(name = 'Table 1', columns: Column[] = []): TableView {
-  return { id: createId(), name, columns, filters: [], sort: null, grain: [], keepEmpty: true }
+export function createView(name = 'Table 1', columns: Column[] = [], offset = ''): TableView {
+  return { id: createId(), name, offset, columns, filters: [], sort: null, grain: [], keepEmpty: true }
 }
 
 export function createWorkspace(name = 'Workspace 1', rows: Row[] = [], columns: Column[] = []): Workspace {
@@ -35,6 +35,7 @@ export function duplicateView(view: TableView): TableView {
   return {
     id: createId(),
     name: `${view.name} copy`,
+    offset: view.offset,
     columns: view.columns.map((c) => ({ ...c })),
     filters: view.filters.map((f) => ({ ...f })),
     sort: view.sort,

@@ -1,0 +1,108 @@
+.bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  background: var(--off-bar);
+  border-bottom: 1px solid var(--off-bar-line);
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.lead {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-muted);
+}
+
+.step {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.caret {
+  flex: none;
+  font-size: 9px;
+  color: var(--fg-faint);
+}
+
+.chip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 7px;
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--off-line-hover);
+  color: var(--off-fg);
+}
+
+/* The level the table is reading from: nowhere to click, only a way out. */
+.chipCurrent,
+.chipCurrent:hover {
+  border-color: var(--off-chip-line);
+  background: var(--off-chip-bg);
+  color: var(--off-fg-chip);
+  font-weight: 500;
+  cursor: default;
+}
+
+.drop {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--off-fg-soft);
+  cursor: pointer;
+}
+
+.drop:hover {
+  color: var(--danger-fg);
+}
+
+.trailing {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+  flex: none;
+}
+
+.count {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-muted);
+}
+
+.reset {
+  flex: none;
+  padding: 2px 7px;
+  border: 1px solid var(--off-line);
+  border-radius: 4px;
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--off-fg);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.reset:hover {
+  border-color: var(--off-line-hover);
+}

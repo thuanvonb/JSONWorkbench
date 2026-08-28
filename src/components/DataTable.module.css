@@ -203,8 +203,10 @@
   cursor: pointer;
 }
 
+/* Ringed as well as tinted: with the arrow keys this is the cursor. */
 .cellSelected {
   background: var(--acc-bg-hover);
+  box-shadow: inset 0 0 0 2px var(--acc);
 }
 
 .tail {

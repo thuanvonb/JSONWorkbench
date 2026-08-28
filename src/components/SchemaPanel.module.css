@@ -71,6 +71,48 @@
   border-color: var(--line-hover);
 }
 
+/* Says what the tree is describing once the table reads from a nested path. */
+.offset {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 26px;
+  padding: 0 10px 0 14px;
+  border-bottom: 1px solid var(--off-strip-line);
+  background: var(--off-bar);
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--off-fg);
+}
+
+.offsetMark {
+  flex: none;
+}
+
+.offsetPath {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.offsetUp {
+  flex: none;
+  padding: 1px 6px;
+  border: 1px solid var(--off-line);
+  border-radius: 3px;
+  background: var(--surface);
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.offsetUp:hover {
+  border-color: var(--off-line-hover);
+}
+
 .tree {
   flex: 1;
   min-height: 0;
@@ -178,6 +220,35 @@
   background: none;
   color: var(--ok-fg);
   cursor: default;
+}
+
+/* Re-roots the table at this key; only keys holding records get one. */
+.offsetTo {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--off-line);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--off-fg-mark);
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.offsetTo:hover {
+  border-color: var(--off-line-hover);
+}
+
+/* Keeps the add buttons in one column on rows that cannot be a root. */
+.offsetSpacer {
+  flex: none;
+  width: 16px;
 }
 
 .empty {

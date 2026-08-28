@@ -110,14 +110,16 @@ function migrateWorkspace(input: unknown): Workspace {
 }
 
 /**
- * Filter rows changed shape when the filter panel replaced the pills, and views
- * saved before arrays could be expanded carry no grain at all.
+ * Filter rows changed shape when the filter panel replaced the pills; views
+ * saved before arrays could be expanded carry no grain at all, and ones saved
+ * before tables could be re-rooted carry no offset.
  */
 function migrateView(input: unknown): TableView {
   const saved = (input ?? {}) as Partial<TableView>
   return {
     id: saved.id ?? createId(),
     name: saved.name ?? 'Table 1',
+    offset: typeof saved.offset === 'string' ? saved.offset : '',
     columns: Array.isArray(saved.columns) ? saved.columns : [],
     filters: normalizeFilters(saved.filters),
     sort: saved.sort ?? null,

@@ -73,6 +73,19 @@
   --acc-fg-chip: oklch(0.4 0.12 259);
   --acc-line-dashed: oklch(0.82 0.03 259);
 
+  /* Offset (teal): which part of the source one table reads from */
+  --off-bar: oklch(0.968 0.018 185);
+  --off-bar-line: oklch(0.88 0.04 185);
+  --off-strip-line: oklch(0.9 0.03 185);
+  --off-chip-bg: oklch(0.9 0.06 185);
+  --off-chip-line: oklch(0.82 0.07 185);
+  --off-fg-chip: oklch(0.34 0.09 185);
+  --off-fg: oklch(0.38 0.07 185);
+  --off-fg-mark: oklch(0.42 0.07 185);
+  --off-fg-soft: oklch(0.5 0.07 185);
+  --off-line: oklch(0.85 0.035 185);
+  --off-line-hover: oklch(0.6 0.09 185);
+
   /* Danger (red) */
   --danger: oklch(0.52 0.15 25);
   --danger-fg: oklch(0.45 0.15 25);

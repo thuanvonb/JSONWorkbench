@@ -30,6 +30,8 @@ export interface Profile {
 
 export interface ProfileView {
   name: string
+  /** Where the table read from; a pure path, so it carries over verbatim. */
+  offset?: string
   columns: ProfileColumn[]
   filters: ProfileFilter[]
   /** Sort is stored by column name, since ids are minted fresh on load. */
@@ -98,6 +100,7 @@ function snapshotView(view: TableView): ProfileView {
   }
   return {
     name: view.name,
+    offset: view.offset,
     columns: view.columns.map((c) => ({
       name: c.name,
       kind: c.kind,
@@ -154,6 +157,7 @@ export function profileViews(profile: Profile): TableView[] {
     return {
       id: createId(),
       name: saved.name || 'Table 1',
+      offset: saved.offset ?? '',
       columns,
       filters: liveFilters(saved.filters ?? [], idOf),
       sort: sortOf(saved, idOf(saved.sortColName)),

@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { cx } from '../lib/cx'
 import { isolate } from '../lib/events'
-import { addColumnTitle, schemaSummary } from '../lib/labels'
+import { addColumnTitle, offsetTitle, schemaSummary } from '../lib/labels'
+import { childOffset, parentOffset } from '../lib/offset'
 import { buildSchema, columnedPaths, countSchema, expandablePaths, flattenSchema } from '../lib/schema'
 import type { SchemaViewState } from '../types/ui'
 import type { Column, Row } from '../types/workbench'
@@ -13,8 +14,12 @@ interface SchemaPanelProps {
   /** Columns of the active table, to tell which paths are already shown. */
   columns: Column[]
   state: SchemaViewState
+  /** Where the table reads from, since the tree describes those records. */
+  offset: string
   onChange: (patch: Partial<SchemaViewState>) => void
   onAddColumn: (path: string, key: string) => void
+  /** Re-roots the table at an absolute path. */
+  onOffset: (path: string) => void
 }
 
 const COPIED_RESET_MS = 1100
@@ -23,7 +28,15 @@ const INDENT_STEP = 14
 const FOOT_HINT = 'click a row to copy its path · ▸ to expand'
 
 /** Schema tab: the shape inferred from the records, as a collapsible tree. */
-export function SchemaPanel({ rows, columns, state, onChange, onAddColumn }: SchemaPanelProps) {
+export function SchemaPanel({
+  rows,
+  columns,
+  state,
+  offset,
+  onChange,
+  onAddColumn,
+  onOffset,
+}: SchemaPanelProps) {
   const [copiedPath, setCopiedPath] = useState('')
 
   const schema = useMemo(() => buildSchema(rows), [rows])
@@ -89,9 +102,28 @@ export function SchemaPanel({ rows, columns, state, onChange, onAddColumn }: Sch
         </button>
       </div>
 
+      {offset ? (
+        <div className={styles.offset}>
+          <span className={styles.offsetMark}>⤓</span>
+          <span className={styles.offsetPath} title={offset}>
+            {offset}
+          </span>
+          <button
+            type="button"
+            className={styles.offsetUp}
+            title="Move the offset up one level"
+            onClick={() => onOffset(parentOffset(offset))}
+          >
+            up
+          </button>
+        </div>
+      ) : null}
+
       <div className={styles.tree}>
         {nodes.map((node) => {
           const added = columned.has(node.path)
+          // Only a key holding records can become a root of its own.
+          const nested = node.hasChildren || /array|object/.test(node.type)
 
           return (
             <div
@@ -127,6 +159,19 @@ export function SchemaPanel({ rows, columns, state, onChange, onAddColumn }: Sch
                 </span>
               ) : null}
               <span className={styles.type}>{node.type}</span>
+              {nested ? (
+                <button
+                  type="button"
+                  className={styles.offsetTo}
+                  title={offsetTitle(childOffset(offset, node.path))}
+                  aria-label={`Offset the table to ${node.key}`}
+                  onClick={isolate(() => onOffset(childOffset(offset, node.path)))}
+                >
+                  ⤓
+                </button>
+              ) : (
+                <span className={styles.offsetSpacer} />
+              )}
               <button
                 type="button"
                 className={styles.add}
