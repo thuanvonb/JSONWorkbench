@@ -102,11 +102,3 @@ function toRows(data: unknown): Row[] {
   }
   return [{ value: data }]
 }
-
-/** True when two records share the same top-level keys, so existing tables still apply. */
-export function sameShape(a: Row, b: Row): boolean {
-  if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false
-  const ka = Object.keys(a as object).sort().join(',')
-  const kb = Object.keys(b as object).sort().join(',')
-  return ka === kb
-}

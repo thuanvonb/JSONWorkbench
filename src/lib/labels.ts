@@ -1,7 +1,8 @@
 import type { ArrayMode, TableView, Workspace } from '../types/workbench'
 import type { FilterIssueCode } from './filterTree'
 import type { Profile } from './profiles'
-import type { SchemaCounts } from './schema'
+import type { SchemaCounts, SchemaDrift } from './schema'
+import { countSchemaShape, readSchemaShape } from './schema'
 
 /** Toolbar summary: what the current workspace holds. */
 export function workspaceSummary(recordCount: number, columnCount: number, pathCount: number): string {
@@ -57,13 +58,27 @@ export function foldedInto(position: number | undefined): string {
 export function profileMeta(profile: Profile): string {
   const columns = profile.views.reduce((n, v) => n + v.columns.length, 0)
   const filters = profile.views.reduce((n, v) => n + v.filters.length, 0)
-  return `${tableCount(profile.views.length)} · ${columns} columns · ${filters} filters · ${savedDate(profile.savedAt)}`
+  const schema = readSchemaShape(profile.schema)
+  const keys = schema ? ` · ${keyCount(countSchemaShape(schema))}` : ''
+  return `${tableCount(profile.views.length)} · ${columns} columns · ${filters} filters${keys} · ${savedDate(profile.savedAt)}`
 }
 
 /** What saving right now would capture. */
 export function currentSetupLabel(workspace: Workspace, view: TableView): string {
   const sorted = view.sort ? ' · sorted' : ''
   return `current: ${tableCount(workspace.views.length)} · ${view.columns.length} columns · ${view.filters.length} filters${sorted}`
+}
+
+function keyCount(counts: SchemaCounts): string {
+  return `${counts.total} keys (${counts.optional} optional)`
+}
+
+/** Union update's tooltip: what it does, or why the current data cannot take part. */
+export function unionUpdateTitle(gaps: string[] | null): string {
+  if (gaps === null) return 'Needs a profile saved with a schema and loaded data: use Update once first'
+  if (gaps.length === 0) return "Merge this data's optional keys into the profile's schema, keeping its tables"
+  const more = gaps.length > 3 ? ` and ${gaps.length - 3} more` : ''
+  return `This data lacks required ${gaps.slice(0, 3).join(', ')}${more} on some records`
 }
 
 function tableCount(count: number): string {
@@ -119,6 +134,23 @@ export function offsetAskBody(columnCount: number, filterCount: number): string 
   const columns = `${columnCount} ${columnCount === 1 ? 'column' : 'columns'}`
   const filters = filterCount ? ` and ${filterCount} ${filterCount === 1 ? 'filter' : 'filters'}` : ''
   return `${columns}${filters} read from the current root and will be dropped. Grain and sort reset too.`
+}
+
+/** The confirm shown when re-parsed data no longer has the shape the tables were built on. */
+export const RELOAD_ASK_TITLE = 'The new data has a different shape'
+
+/** Names the first few drifted paths, since a payload swap can drift hundreds. */
+export function reloadAskBody(drift: SchemaDrift[], tableCount: number): string {
+  const list = (change: SchemaDrift['change']) => {
+    const paths = drift.filter((d) => d.change === change).map((d) => d.path)
+    const more = paths.length > 3 ? ` and ${paths.length - 3} more` : ''
+    return paths.slice(0, 3).join(', ') + more
+  }
+  const missing = list('missing')
+  const added = list('added')
+  const parts = [missing && `no longer has ${missing}`, added && `now always has ${added}`].filter(Boolean)
+  const tables = tableCount === 1 ? 'Your table was' : `Your ${tableCount} tables were`
+  return `Every record ${parts.join(', and ')}. ${tables} built on the old shape: discard them and start fresh, or keep them and let what no longer matches read blank.`
 }
 
 /** The table is empty because the offset path is not in this data at all. */

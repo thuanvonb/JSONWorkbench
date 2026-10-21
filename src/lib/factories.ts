@@ -19,6 +19,14 @@ export function createView(name = 'Table 1', columns: Column[] = [], offset = ''
   return { id: createId(), name, offset, columns, filters: [], sort: null, grain: [], keepEmpty: true }
 }
 
+/** True when any table holds something a fresh load would throw away. */
+export function hasTableSetup(views: TableView[]): boolean {
+  return (
+    views.length > 1 ||
+    views.some((v) => v.columns.length || v.filters.length || v.grain.length || v.offset || v.sort)
+  )
+}
+
 export function createWorkspace(name = 'Workspace 1', rows: Row[] = [], columns: Column[] = []): Workspace {
   const view = createView('Table 1', columns)
   return {

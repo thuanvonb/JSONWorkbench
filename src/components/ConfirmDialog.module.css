@@ -1,4 +1,4 @@
-/* Above the other overlays: it can be raised from inside the schema panel. */
+/* Above the other overlays: it can be raised from the schema panel or the source modal. */
 .scrim {
   position: fixed;
   inset: 0;

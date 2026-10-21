@@ -1,19 +1,29 @@
 import { useEscapeKey } from '../hooks/useEscapeKey'
 import { stopPropagation } from '../lib/events'
-import styles from './OffsetConfirm.module.css'
+import styles from './ConfirmDialog.module.css'
 
-interface OffsetConfirmProps {
+interface ConfirmDialogProps {
   title: string
   body: string
-  /** Re-roots this table, dropping the setup that read from the old root. */
+  /** The primary button: the action that throws the user's setup away. */
+  confirmLabel: string
   onConfirm: () => void
-  /** Keeps this table as it is and opens the path as a table of its own. */
-  onNewTable: () => void
+  /** An optional middle button: a way to go ahead and keep the setup as well. */
+  alternateLabel?: string
+  onAlternate?: () => void
   onCancel: () => void
 }
 
-/** Asked before an offset throws away columns and filters the user built. */
-export function OffsetConfirm({ title, body, onConfirm, onNewTable, onCancel }: OffsetConfirmProps) {
+/** Asked before an action throws away columns and filters the user built. */
+export function ConfirmDialog({
+  title,
+  body,
+  confirmLabel,
+  onConfirm,
+  alternateLabel,
+  onAlternate,
+  onCancel,
+}: ConfirmDialogProps) {
   useEscapeKey(onCancel)
 
   return (
@@ -33,11 +43,13 @@ export function OffsetConfirm({ title, body, onConfirm, onNewTable, onCancel }: 
           <button type="button" className="wb-btn" onClick={onCancel}>
             Cancel
           </button>
-          <button type="button" className="wb-btn" onClick={onNewTable}>
-            Open in a new table
-          </button>
+          {alternateLabel && onAlternate ? (
+            <button type="button" className="wb-btn" onClick={onAlternate}>
+              {alternateLabel}
+            </button>
+          ) : null}
           <button type="button" className="wb-btn-primary" onClick={onConfirm}>
-            Drop and offset
+            {confirmLabel}
           </button>
         </div>
       </div>

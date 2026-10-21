@@ -1,7 +1,8 @@
 import { useState } from 'react'
 
 import type { Profile } from '../lib/profiles'
-import { createProfile, sameName } from '../lib/profiles'
+import { createProfile, sameName, unionGaps, unionProfile } from '../lib/profiles'
+import { schemaShapeOf } from '../lib/schema'
 import { loadProfiles, saveProfiles } from '../lib/storage'
 import type { Workspace } from '../types/workbench'
 
@@ -11,6 +12,8 @@ export interface ProfileStore {
   save: (name: string, workspace: Workspace) => void
   /** Re-captures an existing profile from the workspace, keeping its id and name. */
   update: (id: string, workspace: Workspace) => void
+  /** Unions the workspace's schema into a profile's, leaving its tables alone. */
+  unionUpdate: (id: string, workspace: Workspace) => void
   remove: (id: string) => void
 }
 
@@ -44,6 +47,13 @@ export function useProfiles(): ProfileStore {
       if (!existing) return
       const profile = createProfile(existing.name, workspace)
       commit(profiles.map((p) => (p.id === id ? { ...profile, id } : p)))
+    },
+
+    unionUpdate: (id, workspace) => {
+      const existing = profiles.find((p) => p.id === id)
+      // The modal disables the button too; a stale click must not widen a schema the data breaks.
+      if (!existing || unionGaps(existing, schemaShapeOf(workspace.rows))?.length !== 0) return
+      commit(profiles.map((p) => (p.id === id ? unionProfile(existing, workspace.rows) : p)))
     },
 
     remove: (id) => commit(profiles.filter((p) => p.id !== id)),

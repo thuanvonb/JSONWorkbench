@@ -8,7 +8,7 @@ import { FilterPanel } from './components/FilterPanel'
 import { GrainBar } from './components/GrainBar'
 import { InspectorPanel } from './components/InspectorPanel'
 import { OffsetBar } from './components/OffsetBar'
-import { OffsetConfirm } from './components/OffsetConfirm'
+import { ConfirmDialog } from './components/ConfirmDialog'
 import { ProfilesModal } from './components/ProfilesModal'
 import { SchemaPanel } from './components/SchemaPanel'
 import { SidePanel } from './components/SidePanel'
@@ -28,6 +28,7 @@ import {
   createCustomFilter,
   createPathColumn,
   createSimpleFilter,
+  hasTableSetup,
   inferColumns,
 } from './lib/factories'
 import { buildFilterPlan } from './lib/filterTree'
@@ -50,17 +51,20 @@ import {
   offsetAskBody,
   offsetAskTitle,
   offsetEmptyTitle,
+  RELOAD_ASK_TITLE,
+  reloadAskBody,
   rowCountLabel,
   workspaceSummary,
 } from './lib/labels'
 import { offsetCrumbs, resolveOffset } from './lib/offset'
 import { DEFAULT_PANEL_WIDTH } from './lib/panelSize'
-import { parseRecords, sameShape } from './lib/parse'
+import { parseRecords } from './lib/parse'
 import type { Profile } from './lib/profiles'
 import { profileViews, shapeKey } from './lib/profiles'
 import { collectPaths } from './lib/path'
 import { COLUMN_POPOVER_SIZE, anchorPopover } from './lib/popover'
 import { computeAggregates, selectRows } from './lib/rows'
+import { schemaDrift, schemaShapeOf } from './lib/schema'
 import { useProfiles } from './state/useProfiles'
 import { useWorkbench } from './state/useWorkbench'
 import type {
@@ -68,6 +72,7 @@ import type {
   OffsetRequest,
   PanelTab,
   PopoverState,
+  ReloadRequest,
   RenameController,
   RenameTarget,
   SchemaViewState,
@@ -75,7 +80,7 @@ import type {
 import type { ArrayMode, Filter, FilterType, Inspect, Row, RowRef } from './types/workbench'
 import styles from './App.module.css'
 
-const FOOTER_HINT = 'click a cell for its raw value · arrow keys to move · esc to clear'
+const FOOTER_HINT = 'click a cell for its raw value · arrow keys to move · ctrl+c to copy · esc to clear'
 
 export default function App() {
   const { workspaces, workspace, view, display, setDisplay, dispatch } = useWorkbench()
@@ -96,6 +101,8 @@ export default function App() {
   const [renameTarget, setRenameTarget] = useState<RenameTarget | null>(null)
   // A pending offset, while the confirm asks about dropping the table's setup.
   const [offsetAsk, setOffsetAsk] = useState<OffsetRequest | null>(null)
+  // A parsed source whose shape broke from the tables, while the confirm asks about them.
+  const [reloadAsk, setReloadAsk] = useState<ReloadRequest | null>(null)
 
   // The records this table reads: the whole payload, or the part of it the
   // table is offset to. Everything below works off these, not the source.
@@ -164,7 +171,12 @@ export default function App() {
 
   // An overlay owns the keyboard while it is open, Escape included.
   const overlayOpen =
-    sourceOpen || profilesOpen || popover !== null || offsetAsk !== null || renameTarget !== null
+    sourceOpen ||
+    profilesOpen ||
+    popover !== null ||
+    offsetAsk !== null ||
+    reloadAsk !== null ||
+    renameTarget !== null
 
   useGridKeys({
     enabled: !overlayOpen,
@@ -173,6 +185,8 @@ export default function App() {
       if (inspect) setInspect(null)
       else if (panel) setPanel(null)
     },
+    // The same text the record tab shows: a cell's value, or a row's whole record.
+    copyText: () => inspectDetail?.json ?? null,
   })
   useCellIntoView(inspect?.kind === 'cell' ? cellDomKey(inspect.key, inspect.colId) : '')
 
@@ -196,6 +210,7 @@ export default function App() {
 
   const loadRecords = (raw: string, rows: Row[], keepViews: boolean) => {
     dispatch({ type: 'data/load', raw, rows, keepViews })
+    setReloadAsk(null)
     setParseError('')
     setSourceOpen(false)
     setInspect(null)
@@ -207,10 +222,17 @@ export default function App() {
       setParseError(result.error)
       return
     }
-    // Reusing the existing tables only makes sense when the records still look
-    // the same; otherwise the columns would all resolve to nothing.
-    const keepViews = workspace.rows.length > 0 && sameShape(workspace.rows[0], result.rows[0])
-    loadRecords(text.trim(), result.rows, keepViews)
+    const raw = text.trim()
+    // Nothing built yet means nothing to keep: the load starts fresh.
+    if (workspace.rows.length === 0 || !hasTableSetup(workspace.views)) {
+      loadRecords(raw, result.rows, false)
+      return
+    }
+    // An edit of the same data keeps every table. A shape the tables were not
+    // built on asks first, rather than throwing their setup away unseen.
+    const drift = schemaDrift(workspace.rows, result.rows)
+    if (drift.length === 0) loadRecords(raw, result.rows, true)
+    else setReloadAsk({ raw, rows: result.rows, drift })
   }
 
   const loadSample = () => {
@@ -589,6 +611,9 @@ export default function App() {
           onParse={parseSource}
           onLoadDemo={loadSample}
           onClose={() => {
+            // Escape reaches this modal too while the confirm sits on top of it;
+            // that one closes the confirm, not the text being edited.
+            if (reloadAsk) return
             setSourceOpen(false)
             setParseError('')
           }}
@@ -600,9 +625,11 @@ export default function App() {
           profiles={profiles.profiles}
           defaultName={workspace.name}
           shape={shapeKey(workspace.rows)}
+          schema={schemaShapeOf(workspace.rows)}
           setup={currentSetupLabel(workspace, view)}
           onSave={(name) => profiles.save(name, workspace)}
           onUpdate={(id) => profiles.update(id, workspace)}
+          onUnionUpdate={(id) => profiles.unionUpdate(id, workspace)}
           onDelete={profiles.remove}
           onLoad={loadProfile}
           onClose={() => setProfilesOpen(false)}
@@ -610,12 +637,26 @@ export default function App() {
       ) : null}
 
       {offsetAsk ? (
-        <OffsetConfirm
+        <ConfirmDialog
           title={offsetAskTitle(offsetAsk.path)}
           body={offsetAskBody(view.columns.length, view.filters.length)}
+          confirmLabel="Drop and offset"
           onConfirm={() => confirmOffset(offsetAsk.path)}
-          onNewTable={() => offsetInNewTable(offsetAsk.path)}
+          alternateLabel="Open in a new table"
+          onAlternate={() => offsetInNewTable(offsetAsk.path)}
           onCancel={() => setOffsetAsk(null)}
+        />
+      ) : null}
+
+      {reloadAsk ? (
+        <ConfirmDialog
+          title={RELOAD_ASK_TITLE}
+          body={reloadAskBody(reloadAsk.drift, workspace.views.length)}
+          confirmLabel="Discard tables"
+          onConfirm={() => loadRecords(reloadAsk.raw, reloadAsk.rows, false)}
+          alternateLabel="Keep tables"
+          onAlternate={() => loadRecords(reloadAsk.raw, reloadAsk.rows, true)}
+          onCancel={() => setReloadAsk(null)}
         />
       ) : null}
 

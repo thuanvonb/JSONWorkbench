@@ -1,9 +1,10 @@
 import { useState } from 'react'
 
 import { cx } from '../lib/cx'
-import { profileMeta } from '../lib/labels'
+import { profileMeta, unionUpdateTitle } from '../lib/labels'
 import type { Profile } from '../lib/profiles'
-import { fitsShape, sameName } from '../lib/profiles'
+import { fitsShape, sameName, unionGaps } from '../lib/profiles'
+import type { SchemaShape } from '../lib/schema'
 import { Modal } from './Modal'
 import styles from './ProfilesModal.module.css'
 
@@ -13,10 +14,13 @@ interface ProfilesModalProps {
   defaultName: string
   /** Shape of the loaded records, for the "fits this data" badge. */
   shape: string
+  /** Schema of the loaded records, which union update checks and merges in. */
+  schema: SchemaShape | null
   /** What saving right now would capture. */
   setup: string
   onSave: (name: string) => void
   onUpdate: (id: string) => void
+  onUnionUpdate: (id: string) => void
   onDelete: (id: string) => void
   onLoad: (profile: Profile) => void
   onClose: () => void
@@ -30,9 +34,11 @@ export function ProfilesModal({
   profiles,
   defaultName,
   shape,
+  schema,
   setup,
   onSave,
   onUpdate,
+  onUnionUpdate,
   onDelete,
   onLoad,
   onClose,
@@ -83,47 +89,59 @@ export function ProfilesModal({
       <div className={styles.setup}>{setup}</div>
 
       <div className={styles.list}>
-        {profiles.map((profile) => (
-          <div key={profile.id} className={styles.row}>
-            <div className={styles.labels}>
-              <div className={styles.nameRow}>
-                <span className={styles.name}>{profile.name}</span>
-                {fitsShape(profile, shape) ? (
-                  <span className={styles.fits} title="Saved from data with the same top-level keys">
-                    fits this data
-                  </span>
-                ) : null}
+        {profiles.map((profile) => {
+          const gaps = unionGaps(profile, schema)
+          return (
+            <div key={profile.id} className={styles.row}>
+              <div className={styles.labels}>
+                <div className={styles.nameRow}>
+                  <span className={styles.name}>{profile.name}</span>
+                  {fitsShape(profile, shape) ? (
+                    <span className={styles.fits} title="Saved from data with the same top-level keys">
+                      fits this data
+                    </span>
+                  ) : null}
+                </div>
+                <span className={styles.meta}>{profileMeta(profile)}</span>
               </div>
-              <span className={styles.meta}>{profileMeta(profile)}</span>
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  className="wb-btn wb-btn-sm wb-btn-accent"
+                  onClick={() => onLoad(profile)}
+                >
+                  Load
+                </button>
+                <button
+                  type="button"
+                  className="wb-btn wb-btn-sm"
+                  title="Replace with the current setup"
+                  onClick={() => onUpdate(profile.id)}
+                >
+                  Update
+                </button>
+                <button
+                  type="button"
+                  className="wb-btn wb-btn-sm"
+                  title={unionUpdateTitle(gaps)}
+                  disabled={gaps?.length !== 0}
+                  onClick={() => onUnionUpdate(profile.id)}
+                >
+                  Union update
+                </button>
+                <button
+                  type="button"
+                  className={styles.delete}
+                  title="Delete profile"
+                  aria-label={`Delete ${profile.name}`}
+                  onClick={() => onDelete(profile.id)}
+                >
+                  ×
+                </button>
+              </div>
             </div>
-            <div className={styles.actions}>
-              <button
-                type="button"
-                className="wb-btn wb-btn-sm wb-btn-accent"
-                onClick={() => onLoad(profile)}
-              >
-                Load
-              </button>
-              <button
-                type="button"
-                className="wb-btn wb-btn-sm"
-                title="Replace with the current setup"
-                onClick={() => onUpdate(profile.id)}
-              >
-                Update
-              </button>
-              <button
-                type="button"
-                className={styles.delete}
-                title="Delete profile"
-                aria-label={`Delete ${profile.name}`}
-                onClick={() => onDelete(profile.id)}
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        ))}
+          )
+        })}
         {profiles.length === 0 ? <div className={styles.empty}>{EMPTY}</div> : null}
       </div>
     </Modal>

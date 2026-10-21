@@ -13,6 +13,8 @@ import type {
 import { createView } from './factories'
 import { normalizeBoolOp } from './filters'
 import { createId } from './id'
+import type { SchemaShape } from './schema'
+import { readSchemaShape, requiredGaps, schemaShapeOf, unionSchemaShapes } from './schema'
 
 /**
  * A saved table setup — columns, filters and sort, with no data attached, so it
@@ -25,6 +27,11 @@ export interface Profile {
   savedAt: string
   /** Sorted top-level keys of the data it was saved from; '' when unknown. */
   shape: string
+  /**
+   * Every key of the data it was saved from, and which were optional; absent on
+   * profiles saved before they kept one. Union update widens it.
+   */
+  schema?: SchemaShape | null
   views: ProfileView[]
 }
 
@@ -88,7 +95,31 @@ export function createProfile(name: string, workspace: Workspace): Profile {
     name,
     savedAt: new Date().toISOString(),
     shape: shapeKey(workspace.rows),
+    schema: schemaShapeOf(workspace.rows),
     views: workspace.views.map(snapshotView),
+  }
+}
+
+/**
+ * Required keys of the profile's schema that the data does not hold on every
+ * record — empty when a union update may go ahead. Null when there is nothing
+ * to check: a profile saved without a schema, or data with no records to read.
+ */
+export function unionGaps(profile: Profile, current: SchemaShape | null): string[] | null {
+  const saved = readSchemaShape(profile.schema)
+  if (!saved || !current) return null
+  return requiredGaps(saved, current, true)
+}
+
+/**
+ * Widens the profile's schema with the data's, keeping its tables: every key
+ * either one held, required only where both require it.
+ */
+export function unionProfile(profile: Profile, rows: Row[]): Profile {
+  return {
+    ...profile,
+    savedAt: new Date().toISOString(),
+    schema: unionSchemaShapes(readSchemaShape(profile.schema), schemaShapeOf(rows)),
   }
 }
 

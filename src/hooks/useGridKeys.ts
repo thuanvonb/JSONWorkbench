@@ -8,18 +8,24 @@ interface GridKeysOptions {
   enabled: boolean
   onMove: (key: ArrowKey) => void
   onEscape: () => void
+  /** The text Ctrl/Cmd+C copies for the current selection, or null when nothing is selected. */
+  copyText: () => string | null
 }
 
 /**
- * Document-level arrow-key handling for the table. It lives here rather than on
- * the table itself because the selection is owned by `App` and nothing in the
- * grid holds focus.
+ * Document-level arrow-key and copy handling for the table. It lives here rather
+ * than on the table itself because the selection is owned by `App` and nothing
+ * in the grid holds focus.
  */
-export function useGridKeys({ enabled, onMove, onEscape }: GridKeysOptions): void {
+export function useGridKeys({ enabled, onMove, onEscape, copyText }: GridKeysOptions): void {
   useEffect(() => {
     if (!enabled) return
 
     const onKeyDown = (event: KeyboardEvent) => {
+      if (isCopyShortcut(event)) {
+        copySelection(event, copyText)
+        return
+      }
       // Modified arrows are the browser's (word jumps, history, zoom).
       if (event.metaKey || event.ctrlKey || event.altKey) return
       if (isTyping(event.target)) return
@@ -35,7 +41,28 @@ export function useGridKeys({ enabled, onMove, onEscape }: GridKeysOptions): voi
 
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [enabled, onMove, onEscape])
+  }, [enabled, onMove, onEscape, copyText])
+}
+
+function isCopyShortcut(event: KeyboardEvent): boolean {
+  // Ctrl+Shift+C opens the devtools inspector in most browsers; leave it be.
+  return (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'c'
+}
+
+/**
+ * Copies the selected cell or row, unless the user is copying something of
+ * their own: text typed into a field, or text highlighted on the page.
+ */
+function copySelection(event: KeyboardEvent, copyText: () => string | null): void {
+  if (isTyping(event.target)) return
+  const highlighted = window.getSelection()
+  if (highlighted && !highlighted.isCollapsed) return
+  const text = copyText()
+  if (text === null || !navigator.clipboard) return
+  event.preventDefault()
+  navigator.clipboard.writeText(text).catch(() => {
+    // Clipboard blocked by the browser; nothing useful to show.
+  })
 }
 
 function isTyping(target: EventTarget | null): boolean {

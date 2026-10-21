@@ -1,4 +1,5 @@
-import type { ArrayConfig, ColumnKind } from './workbench'
+import type { SchemaDrift } from '../lib/schema'
+import type { ArrayConfig, ColumnKind, Row } from './workbench'
 
 export interface ColumnDraft extends ArrayConfig {
   id: string
@@ -22,6 +23,13 @@ export interface SchemaViewState {
 /** A pending offset, held while the confirm asks about dropping the setup. */
 export interface OffsetRequest {
   path: string
+}
+
+/** A parsed source held back while the confirm asks whether its new shape should drop the tables. */
+export interface ReloadRequest {
+  raw: string
+  rows: Row[]
+  drift: SchemaDrift[]
 }
 
 export interface Point {

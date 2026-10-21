@@ -18,8 +18,14 @@ body.wb-resizing {
   cursor: pointer;
 }
 
-.wb-btn:hover {
+.wb-btn:hover:not(:disabled) {
   border-color: var(--line-hover);
+}
+
+.wb-btn:disabled {
+  background: var(--surface-disabled);
+  color: var(--fg-disabled);
+  cursor: not-allowed;
 }
 
 .wb-btn-sm {
