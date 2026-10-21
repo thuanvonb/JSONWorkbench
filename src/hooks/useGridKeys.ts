@@ -10,6 +10,8 @@ interface GridKeysOptions {
   onEscape: () => void
   /** The text Ctrl/Cmd+C copies for the current selection, or null when nothing is selected. */
   copyText: () => string | null
+  /** Called once the clipboard has taken the text, so the copy can be confirmed. */
+  onCopied: () => void
 }
 
 /**
@@ -17,13 +19,13 @@ interface GridKeysOptions {
  * than on the table itself because the selection is owned by `App` and nothing
  * in the grid holds focus.
  */
-export function useGridKeys({ enabled, onMove, onEscape, copyText }: GridKeysOptions): void {
+export function useGridKeys({ enabled, onMove, onEscape, copyText, onCopied }: GridKeysOptions): void {
   useEffect(() => {
     if (!enabled) return
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (isCopyShortcut(event)) {
-        copySelection(event, copyText)
+        copySelection(event, copyText, onCopied)
         return
       }
       // Modified arrows are the browser's (word jumps, history, zoom).
@@ -41,7 +43,7 @@ export function useGridKeys({ enabled, onMove, onEscape, copyText }: GridKeysOpt
 
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [enabled, onMove, onEscape, copyText])
+  }, [enabled, onMove, onEscape, copyText, onCopied])
 }
 
 function isCopyShortcut(event: KeyboardEvent): boolean {
@@ -53,14 +55,14 @@ function isCopyShortcut(event: KeyboardEvent): boolean {
  * Copies the selected cell or row, unless the user is copying something of
  * their own: text typed into a field, or text highlighted on the page.
  */
-function copySelection(event: KeyboardEvent, copyText: () => string | null): void {
+function copySelection(event: KeyboardEvent, copyText: () => string | null, onCopied: () => void): void {
   if (isTyping(event.target)) return
   const highlighted = window.getSelection()
   if (highlighted && !highlighted.isCollapsed) return
   const text = copyText()
   if (text === null || !navigator.clipboard) return
   event.preventDefault()
-  navigator.clipboard.writeText(text).catch(() => {
+  navigator.clipboard.writeText(text).then(onCopied, () => {
     // Clipboard blocked by the browser; nothing useful to show.
   })
 }

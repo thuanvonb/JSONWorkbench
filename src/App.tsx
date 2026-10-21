@@ -9,6 +9,7 @@ import { GrainBar } from './components/GrainBar'
 import { InspectorPanel } from './components/InspectorPanel'
 import { OffsetBar } from './components/OffsetBar'
 import { ConfirmDialog } from './components/ConfirmDialog'
+import { CopiedToast } from './components/CopiedToast'
 import { ProfilesModal } from './components/ProfilesModal'
 import { SchemaPanel } from './components/SchemaPanel'
 import { SidePanel } from './components/SidePanel'
@@ -46,6 +47,7 @@ import { cellDomKey, cursorFor, moveCursor } from './lib/gridNav'
 import { createId } from './lib/id'
 import { describeInspect } from './lib/inspect'
 import {
+  copiedLabel,
   currentSetupLabel,
   grainChipLabel,
   offsetAskBody,
@@ -103,6 +105,8 @@ export default function App() {
   const [offsetAsk, setOffsetAsk] = useState<OffsetRequest | null>(null)
   // A parsed source whose shape broke from the tables, while the confirm asks about them.
   const [reloadAsk, setReloadAsk] = useState<ReloadRequest | null>(null)
+  // The last keyboard copy; its count re-keys the toast so each copy flashes anew.
+  const [copied, setCopied] = useState<{ count: number; label: string } | null>(null)
 
   // The records this table reads: the whole payload, or the part of it the
   // table is offset to. Everything below works off these, not the source.
@@ -187,6 +191,11 @@ export default function App() {
     },
     // The same text the record tab shows: a cell's value, or a row's whole record.
     copyText: () => inspectDetail?.json ?? null,
+    onCopied: () => {
+      if (!inspect) return
+      const label = copiedLabel(inspect.kind)
+      setCopied((current) => ({ count: (current?.count ?? 0) + 1, label }))
+    },
   })
   useCellIntoView(inspect?.kind === 'cell' ? cellDomKey(inspect.key, inspect.colId) : '')
 
@@ -602,6 +611,8 @@ export default function App() {
         aggregates={aggregates}
         hint={FOOTER_HINT}
       />
+
+      {copied ? <CopiedToast key={copied.count} label={copied.label} /> : null}
 
       {sourceOpen ? (
         <SourceModal

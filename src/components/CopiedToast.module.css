@@ -1,0 +1,47 @@
+/* Above the table and the panel, below the overlays it never shares the screen with. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 40px;
+  z-index: 30;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--acc);
+  color: var(--acc-on);
+  font-family: var(--mono);
+  font-size: 11px;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: flash 1.2s ease-out forwards;
+}
+
+@keyframes flash {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 4px);
+  }
+  12%,
+  70% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation-name: fade;
+  }
+
+  @keyframes fade {
+    0%,
+    70% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+}

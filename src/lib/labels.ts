@@ -1,4 +1,4 @@
-import type { ArrayMode, TableView, Workspace } from '../types/workbench'
+import type { ArrayMode, Inspect, TableView, Workspace } from '../types/workbench'
 import type { FilterIssueCode } from './filterTree'
 import type { Profile } from './profiles'
 import type { SchemaCounts, SchemaDrift } from './schema'
@@ -134,6 +134,11 @@ export function offsetAskBody(columnCount: number, filterCount: number): string 
   const columns = `${columnCount} ${columnCount === 1 ? 'column' : 'columns'}`
   const filters = filterCount ? ` and ${filterCount} ${filterCount === 1 ? 'filter' : 'filters'}` : ''
   return `${columns}${filters} read from the current root and will be dropped. Grain and sort reset too.`
+}
+
+/** The flash after Ctrl+C: what went to the clipboard. */
+export function copiedLabel(kind: Inspect['kind']): string {
+  return kind === 'cell' ? 'copied cell' : 'copied record'
 }
 
 /** The confirm shown when re-parsed data no longer has the shape the tables were built on. */
